@@ -45,7 +45,7 @@ interface MatchProfileInstance extends Sequelize.Instance<MatchProfileData>,
 }
 
 // Sequelzie model for MatchProfileData.
-const MatchProfile = sequelize.define<MatchProfileInstance, MatchProfileData>(
+export const MatchProfile = sequelize.define<MatchProfileInstance, MatchProfileData>(
     'match_profile', {
   profile_id: Sequelize.STRING,
   match_id: Sequelize.STRING,
@@ -53,8 +53,8 @@ const MatchProfile = sequelize.define<MatchProfileInstance, MatchProfileData>(
   data : Sequelize.JSON,
   data_version: Sequelize.STRING,
 }, {
-  createdAt: 'created_at',
-  updatedAt: false,
+  createdAt: false,
+  updatedAt: 'updated_at',
   indexes: [
     { unique: true, fields: [ 'profile_id', 'match_id' ]},
   ]
@@ -70,6 +70,7 @@ export async function readMatchProfile(playerId : string, replayId : string)
   return record;
 }
 
+// Write a MatchProfile record extracted from a MatchHistoryEntry.
 export async function writeHistoryEntry(
     entry : MatchHistoryEntry, profile : PlayerProfile) {
   await MatchProfile.upsert({
@@ -79,4 +80,14 @@ export async function writeHistoryEntry(
     data: matchMetadataFromHistoryEntry(entry, profile),
     data_version: historyParserVersion,
   })
+}
+
+// Read metadata for all the matches associated with a profile.
+export async function readProfileMatches(playerId : string)
+    : Promise<MatchProfileData[]> {
+  const records = await MatchProfile.findAll(
+    { where: { profile_id: playerId }});
+
+  return records.filter(
+      (record) => record.data_version === historyParserVersion);
 }

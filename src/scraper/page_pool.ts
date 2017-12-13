@@ -38,12 +38,26 @@ export default class PagePool {
 
     await this.browser_.close();
     this.browser_ = null;
+    this.browserPromise_ = null;
   }
 
   private checkoutPage() : Promise<puppeteer.Page> {
     if (this.free_pages_.length > 0) {
       const page = this.free_pages_.pop();
       return Promise.resolve(page);
+    }
+
+    if (this.allPages_.size < this.poolSize_) {
+      this.browserPromise_ = this.browserPromise_.then(async () => {
+        if (this.allPages_.size >= this.poolSize_)
+          return;
+
+        const page = await this.browser_.newPage();
+        // Viewport setting is optional, but it makes debugging a tad better.
+        await page.setViewport({width: 1024, height: 768});
+        this.allPages_.add(page);
+        this.checkinPage(page);
+      });
     }
 
     return new Promise((resolve) => { this.queue_.push(resolve); });

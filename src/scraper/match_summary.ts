@@ -5,6 +5,7 @@ import {
   parseFormattedNumber, parseHoursDuration, parsePercentage,
 } from './string_parsing';
 import { extractTableText } from './table_parsing';
+import { catchNavigationTimeout, catchWaitingTimeout } from './timeout_helper';
 
 // Updated every time the parser changes in a released version.
 export const matchParserVersion = "1";
@@ -15,7 +16,10 @@ export async function goToMatchSummary(page : puppeteer.Page,
   const pageUrl =
       'https://www.hotslogs.com/Player/MatchSummaryContainer?' +
       `ReplayID=${replayId}`;
-  await page.goto(pageUrl);
+
+  await catchNavigationTimeout(async () => {
+    await page.goto(pageUrl, { timeout: 10000 });
+  });
 }
 
 function findPlayerId(playerName : string, identities : PlayerIdentity[])
@@ -72,17 +76,23 @@ export interface PlayerMatchSummary {
 // mergeMatchStats().
 export async function extractMatchStats1(page : puppeteer.Page)
     : Promise<PlayerMatchSummary[]> {
-  await page.waitForSelector(
-      '[class*="CharacterScoreResults"] table.rgMasterTable td',
-      { visible: true});
+  
+  await catchWaitingTimeout(async () => {
+    await page.waitForSelector(
+        '[class*="CharacterScoreResults"] table.rgMasterTable td',
+        { visible: true, timeout: 10000 });
+  });
+
+  const matchData : PlayerMatchSummary[] = [];
 
   const table =
       await page.$('[class*="CharacterScoreResults"] table.rgMasterTable');
+  if (!table)
+    return matchData;
+
   const tableText = await extractTableText(table, true);
   const playerLinkData = await extractProfileLinkData(table);
   await table.dispose();
-
-  const matchData : PlayerMatchSummary[] = [];
 
   for (let i = 1; i < tableText.length; ++i) {
     if (tableText[i].length === 2) {
@@ -193,7 +203,9 @@ export async function extractMatchStats1(page : puppeteer.Page)
               `Unknown field in Match History main table: ${tableText[0][j]}`);
       }
     }
-    matchData.push(playerStats);
+
+    if (playerStats.playerId || playerStats.playerName)
+      matchData.push(playerStats);
   }
 
   return matchData;
@@ -215,19 +227,25 @@ interface PlayerMatchSummaryExtra {
 //
 // Assumes the browser is navigated to a match summary page.
 //
-// The data should be merged with the data returned by extractMatchStats1() using
-// mergeMatchStats().
+// The data should be merged with the data returned by extractMatchStats1()
+// using mergeMatchStats().
 export async function extractMatchStats2(page : puppeteer.Page) {
-  await page.waitForSelector(
-      '[id*="MatchDetails"] table.rgMasterTable td', { visible: true});
+  await catchWaitingTimeout(async () => {
+    await page.waitForSelector(
+        '[id*="MatchDetails"] table.rgMasterTable td',
+        { visible: true, timeout: 10000 });
+  });
+
+  const matchData : PlayerMatchSummaryExtra[] = [];
 
   const table =
       await page.$('[id*="MatchDetails"] table.rgMasterTable');
+  if (!table)
+    return matchData;
+
   const tableText = await extractTableText(table, true);
   const playerLinkData = await extractProfileLinkData(table);
   await table.dispose();
-
-  const matchData : PlayerMatchSummaryExtra[] = [];
 
   const parseTalent = (value : string)
       : { name : string, description : string} => {
@@ -288,7 +306,9 @@ export async function extractMatchStats2(page : puppeteer.Page) {
               `Unknown field in Match History main table: ${tableText[0][j]}`);
       }
     }
-    matchData.push(playerStats);
+
+    if (playerStats.playerId || playerStats.playerName)
+      matchData.push(playerStats);
   }
 
   return matchData;
@@ -308,12 +328,28 @@ export function mergeMatchStats(
     indexedData[hashKey(item)] = item;
 
   for (let extraItem of extra) {
-    const item = indexedData[hashKey(extraItem)];
-    if (!item)
-      continue;
+    let item = indexedData[hashKey(extraItem)];
+    if (!item) {
+      item = {
+        playerName: null, playerId: null,
+        hero: extraItem.hero, blueTeam: extraItem.blueTeam,
+        hlScore: {
+          overall: null, kills: null, teamwork: null, deaths: null,
+          role: null, siege: null, xp: null,
+        },
+        takedowns: null, kills: null, assists: null, deaths: null,
+        secondsDead: null,
+        heroDamage: null, siegeDamage: null, healing: null, selfHealing: null,
+        damageTaken: null, xp: null,
+        award: null, heroLevel: null, mmr: { starting: null, delta: null },
+        talentNames: [], talentDescriptions: {},
+      };
+      data.push(item);
+      indexedData[hashKey(item)] = item;
+    }
 
-    console.log(`Matched ${item.playerName}`);
-
+    if (!item.playerName)
+      item.playerName = extraItem.playerName;
     if (!item.playerId)
       item.playerId = extraItem.playerId;
     if (!item.award)

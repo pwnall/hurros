@@ -28,7 +28,6 @@ const main = async () => {
   await goToProfileById(page, '274047');
   const playerProfile = await extractPlayerProfile(page);
   console.log(playerProfile);
-  */
 
   await goToMatchHistory(page, '274047');
   console.log('Gone to match history');
@@ -44,12 +43,12 @@ const main = async () => {
     }
     console.log('Clicked next button');
   }
+  */
 
-  /*
-  await goToMatchSummary(page, '129884617');
+  // await goToMatchSummary(page, '129884617');  // New game with full data.
+  await goToMatchSummary(page, '31056044');  // Old game from 2015.
   const text = await extractMatchStats(page);
   console.log(inspect(text, false, null));
-  */
 
   await browser.close();
 };

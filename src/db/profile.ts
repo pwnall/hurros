@@ -3,6 +3,7 @@ import * as Sequelize from 'sequelize';
 import { PlayerProfile, profileParserVersion } from '../scraper/player_profile';
 
 import { sequelize } from './connection';
+import { MatchProfile } from './match_profile';
 
 // Sequelize service object.
 export interface ProfileData {
@@ -28,9 +29,11 @@ const Profile = sequelize.define<ProfileInstance, ProfileData>('profile', {
   data: Sequelize.JSON,
   data_version: Sequelize.STRING,
 }, {
-  createdAt: 'created_at',
-  updatedAt: false,
+  createdAt: false,
+  updatedAt: 'updated_at',
 });
+
+Profile.hasMany(MatchProfile, { foreignKey: 'profile_id' });
 
 // Creates or updates a profile in the database cache.
 export async function writeProfile(profile : PlayerProfile) {

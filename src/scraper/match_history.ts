@@ -3,24 +3,10 @@ import * as puppeteer from 'puppeteer';
 import { extractPlayerIdFromUrl, } from './player_profile';
 import { parseHoursDuration, parseTimestamp, } from './string_parsing';
 import { extractTableText } from './table_parsing';
+import { catchNavigationTimeout } from './timeout_helper';
 
 // Updated every time the parser changes in a released version.
 export const historyParserVersion = "1";
-
-// Ads are probably still loading.
-async function catchNavigationTimeout(f : () => Promise<void>) : Promise<void> {
-  try {
-    await f();
-    return;
-  } catch (e) {
-    if ((e as Error).message.indexOf('Navigation Timeout Exceeded') !== -1) {
-      console.error(e);
-      return;
-    } else {
-      throw e;
-    }
-  }
-}
 
 // Navigates to a player's match history page.
 export async function goToMatchHistory(page : puppeteer.Page,

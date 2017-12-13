@@ -16,7 +16,7 @@ export interface MatchSummary {
 }
 
 // Sequelize service object.
-export interface MatchData {
+interface MatchData {
   id : string,
   data : MatchSummary,
   data_version : string,
@@ -27,7 +27,7 @@ interface MatchInstance extends Sequelize.Instance<MatchData>, MatchData {
 }
 
 // Sequelize model for MatchSummary.
-const Match = sequelize.define<MatchInstance, MatchData>('profile', {
+const Match = sequelize.define<MatchInstance, MatchData>('match', {
   id: {
     type: Sequelize.STRING,
     primaryKey: true,
@@ -35,8 +35,8 @@ const Match = sequelize.define<MatchInstance, MatchData>('profile', {
   data: Sequelize.JSON,
   data_version: Sequelize.STRING,
 }, {
-  createdAt: 'created_at',
-  updatedAt: false,
+  createdAt: false,
+  updatedAt: 'updated_at',
 });
 
 // Creates or updates a profile in the database cache.
