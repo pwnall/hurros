@@ -6,6 +6,7 @@ import {
 } from './string_parsing';
 import { extractTableText } from './table_parsing';
 import { catchNavigationTimeout, catchWaitingTimeout } from './timeout_helper';
+import { throwUnlessHtmlDocument } from './rate_limit_helper';
 
 // Updated every time the parser changes in a released version.
 export const matchParserVersion = "1";
@@ -78,7 +79,7 @@ export interface PlayerMatchSummary {
 // mergeMatchStats().
 export async function extractMatchStats1(page : puppeteer.Page)
     : Promise<PlayerMatchSummary[]> {
-  
+
   await catchWaitingTimeout(async () => {
     await page.waitForSelector(
         '[class*="CharacterScoreResults"] table.rgMasterTable td',
@@ -375,5 +376,11 @@ export async function extractMatchStats(page : puppeteer.Page) :
   const matchData = await extractMatchStats1(page);
   const extraData = await extractMatchStats2(page);
   mergeMatchStats(matchData, extraData);
+
+  if (matchData.length === 0) {
+    // Empty matchups are likely to represent rate-limiting errors.
+    await throwUnlessHtmlDocument(page);
+  }
+
   return matchData;
 }
