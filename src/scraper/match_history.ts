@@ -4,6 +4,7 @@ import { extractPlayerIdFromUrl, } from './player_profile';
 import { parseHoursDuration, parseTimestamp, } from './string_parsing';
 import { extractTableText } from './table_parsing';
 import { catchNavigationTimeout } from './timeout_helper';
+import { throwUnlessHtmlDocument } from './rate_limit_helper';
 
 // Updated every time the parser changes in a released version.
 export const historyParserVersion = "1";
@@ -62,8 +63,10 @@ export async function selectMatchHistoryQueue(
 export async function nextMatchHistory(page : puppeteer.Page)
     : Promise<boolean> {
   const link = await page.$('a.paginate_button.next');
-  if (!link)
+  if (!link) {
+    await throwUnlessHtmlDocument(page);
     return null;
+  }
 
   await link.click();
   await catchNavigationTimeout(async () => {
@@ -98,6 +101,9 @@ export async function extractMatchHistory(page : puppeteer.Page) :
   await queueNameOption.dispose();
 
   const table = await page.$('table.rgMasterTable');
+  if (!table)
+    await throwUnlessHtmlDocument(page);
+
   const tableText = await extractTableText(table, true);
   await table.dispose();
 

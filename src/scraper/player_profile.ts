@@ -4,6 +4,7 @@ import {
   parseDaysDuration, parseMmr, parsePercentage,
 } from './string_parsing';
 import { extractTableText } from './table_parsing';
+import { throwUnlessHtmlDocument } from './rate_limit_helper';
 
 // Updated every time the parser changes in a released version.
 export const profileParserVersion = "2";
@@ -29,7 +30,7 @@ export async function goToProfileByName(page : puppeteer.Page,
 
 export interface PlayerProfile {
   playerRegion? : string, playerName? : string, playerId? : string,
-  mmr: { 
+  mmr: {
     heroLeague? : number,
     quickMatch? : number,
     teamLeague? : number,
@@ -110,6 +111,9 @@ export async function extractPlayerProfile(page : puppeteer.Page)
   }
 
   const table = await page.$('table.rgMasterTable');
+  if (!table)
+    await throwUnlessHtmlDocument(page);
+
   const tableText = await extractTableText(table, false);
   await table.dispose();
 
