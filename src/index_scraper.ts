@@ -1,7 +1,6 @@
-import * as fs from 'fs';
 import * as puppeteer from 'puppeteer';
 import 'source-map-support/register';
-import { inspect, promisify } from 'util';
+import { inspect } from 'util';
 
 import {
   extractPlayerProfile,
@@ -25,7 +24,8 @@ const main = async () => {
   await page.setViewport({width: 1024, height: 768});
 
   /*
-  await goToProfileById(page, '274047');
+  await goToProfileById(page, '161027'); // dunktrain, full profile
+  await goToProfileById(page, '274047'); // pwnall, missing two ranks
   const playerProfile = await extractPlayerProfile(page);
   console.log(playerProfile);
 
@@ -45,7 +45,7 @@ const main = async () => {
   }
   */
 
-  // await goToMatchSummary(page, '129884617');  // New game with full data.
+  //await goToMatchSummary(page, '129884617');  // New game with full data.
   await goToMatchSummary(page, '31056044');  // Old game from 2015.
   const text = await extractMatchStats(page);
   console.log(inspect(text, false, null));

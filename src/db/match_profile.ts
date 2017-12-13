@@ -83,7 +83,7 @@ export async function writeHistoryEntry(
 }
 
 // Read metadata for all the matches associated with a profile.
-export async function readProfileMatches(playerId : string)
+export async function readProfileMatchMetadata(playerId : string)
     : Promise<MatchProfileData[]> {
   const records = await MatchProfile.findAll(
     { where: { profile_id: playerId }});

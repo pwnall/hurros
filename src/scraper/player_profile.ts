@@ -6,7 +6,7 @@ import {
 import { extractTableText } from './table_parsing';
 
 // Updated every time the parser changes in a released version.
-export const profileParserVersion = "1";
+export const profileParserVersion = "2";
 
 // Navigates to a player's profile page.
 export async function goToProfileById(page : puppeteer.Page,
@@ -28,10 +28,15 @@ export async function goToProfileByName(page : puppeteer.Page,
 }
 
 export interface PlayerProfile {
-  playerRegion?: string, playerName?: string, playerId?: string,
-  mmr: { teamLeague?: number, quickMatch?: number },
-  winRate?: number, mvpRate?: number, heroLevel?: number,
-  gamesPlayed?: number, timePlayed?: number,
+  playerRegion? : string, playerName? : string, playerId? : string,
+  mmr: { 
+    heroLeague? : number,
+    quickMatch? : number,
+    teamLeague? : number,
+    unrankedDraft? : number,
+  },
+  winRate? : number, mvpRate? : number, heroLevel? : number,
+  gamesPlayed? : number, timePlayed? : number,
 };
 
 export function extractPlayerIdFromUrl(url : string) : string | null {
@@ -114,6 +119,12 @@ export async function extractPlayerProfile(page : puppeteer.Page)
     switch (heading) {
       case 'team league':
         data.mmr.teamLeague = parseMmr(value);
+        break;
+      case 'hero league':
+        data.mmr.heroLeague = parseMmr(value);
+        break;
+      case 'unranked draft':
+        data.mmr.unrankedDraft = parseMmr(value);
         break;
       case 'quick match':
         data.mmr.quickMatch = parseMmr(value);

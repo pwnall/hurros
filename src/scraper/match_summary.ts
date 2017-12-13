@@ -41,31 +41,33 @@ export interface PlayerMatchSummary {
 
   // Information from the first summary table.
   hlScore : {
-    overall?: number,
-    kills?: number,
-    teamwork?: number,
-    deaths?: number,
-    role?: number,
-    siege?: number,
-    xp?: number,
+    overall? : number,
+    kills? : number,
+    teamwork? : number,
+    deaths? : number,
+    role? : number,
+    siege? : number,
+    xp? : number,
   },
-  takedowns?: number,
-  kills?: number,
-  assists?: number,
-  deaths?: number,
-  secondsDead?: number,
-  heroDamage?: number,
-  siegeDamage?: number,
-  healing?: number,
-  selfHealing?: number,
-  damageTaken?: number,
-  xp?: number,
+  takedowns? : number,
+  kills? : number,
+  assists? : number,
+  deaths? : number,
+  secondsDead? : number,
+  heroDamage? : number,
+  siegeDamage? : number,
+  healing? : number,
+  selfHealing? : number,
+  damageTaken? : number,
+  xp? : number,
 
   // Information from the second summary table.
-  award?: string, heroLevel?: number,
+  award? : string, heroLevel?: number,
   mmr : { starting? : number, delta? : number },
-  talentNames: string[],
-  talentDescriptions: { [level: string]: { name: string, description: string} },
+  talentNames : string[],
+  talentDescriptions : {
+    [level : string]: { name : string, description : string}
+  },
 }
 
 // Extracts match stats from one of the two tables on the match summary page.
@@ -217,10 +219,12 @@ interface PlayerMatchSummaryExtra {
   hero? : string,
   blueTeam : boolean,
 
-  award: string, heroLevel: number,
+  award? : string, heroLevel? : number,
   mmr : { starting? : number, delta? : number },
-  talentNames: string[],
-  talentDescriptions: { [level: string]: { name: string, description: string} },
+  talentNames : string[],
+  talentDescriptions : {
+    [level : string]: { name : string, description : string}
+  },
 };
 
 // Extracts match stats from one of the two tables on the match summary page.
