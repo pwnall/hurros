@@ -17,7 +17,15 @@ export interface MatchMetadata {
   durationSeconds? : number,
 }
 
-// Extracts match metadata from history entry information.
+// Match information from MatchHistoryEntry that only applies to one player.
+export interface PersonalMatchMetadata {
+  won? : boolean,
+  hero? : string,
+  heroLevel? : number,
+  mmr : { starting? : number, delta? : number },
+}
+
+// Extracts MatchMetadata information from MatchHistoryEntry.
 export function matchMetadataFromHistoryEntry(
     entry : MatchHistoryEntry, profile : PlayerProfile) : MatchMetadata {
   return {
@@ -30,12 +38,23 @@ export function matchMetadataFromHistoryEntry(
   }
 }
 
+export function personalMatchMetadataFromHistoryEntry(
+    entry : MatchHistoryEntry) : PersonalMatchMetadata {
+  return {
+    won: entry.won,
+    hero: entry.hero,
+    heroLevel: entry.heroLevel,
+    mmr: entry.mmr,
+  };
+}
+
 // Connection between a match and a profile.
 export interface MatchProfileData {
   profile_id : string,
   match_id : string,
   played_at: Date,
   data: MatchMetadata,
+  player_data: PersonalMatchMetadata,
   data_version: string,
 }
 
@@ -56,7 +75,13 @@ export const MatchProfile = sequelize.define<MatchProfileInstance, MatchProfileD
   createdAt: false,
   updatedAt: 'updated_at',
   indexes: [
+    // Fetch all the matches belonging to a player.
     { unique: true, fields: [ 'profile_id', 'match_id' ]},
+
+    // Fetch all the players beloning to a match.
+    // This is only useful if the match hasn't been populated. Otherwise, the
+    // match data should have all the player IDs in it.
+    { unique: true, fields: [ 'match_id', 'profile_id' ]},
   ]
 });
 
@@ -78,6 +103,7 @@ export async function writeHistoryEntry(
     match_id: entry.replayId,
     played_at: entry.time,
     data: matchMetadataFromHistoryEntry(entry, profile),
+    player_data: personalMatchMetadataFromHistoryEntry(entry),
     data_version: historyParserVersion,
   })
 }

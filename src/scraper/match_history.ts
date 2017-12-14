@@ -7,7 +7,7 @@ import { catchNavigationTimeout } from './timeout_helper';
 import { throwUnlessHtmlDocument } from './rate_limit_helper';
 
 // Updated every time the parser changes in a released version.
-export const historyParserVersion = "1";
+export const historyParserVersion = "2";
 
 // Navigates to a player's match history page.
 export async function goToMatchHistory(page : puppeteer.Page,
