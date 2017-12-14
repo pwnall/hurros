@@ -10,7 +10,7 @@ export async function isHtmlDocument(page : puppeteer.Page)
       return true;
 
   return await page.evaluate(() => {
-    if (document.stylesheets.length !== 0)
+    if (document.styleSheets.length !== 0)
       return true;
     if (document.doctype)
       return true;
@@ -38,8 +38,8 @@ export async function throwUnlessHtmlDocument(page : puppeteer.Page)
 export async function retryWhileNonHtmlDocumentErrors<T>(f : () => Promise<T>)
     : Promise<T> {
 
-  let backoff = 60 * 1000;  // 1 minute
-  const maxBackoff = 32 * 60 * 1000;  // roughly 30 minutes
+  let backoff = 10 * 60 * 1000;  // 10 minutes
+  const maxBackoff = 60 * 60 * 1000;  // 1 hour
 
   while (true) {
     try {
@@ -48,6 +48,7 @@ export async function retryWhileNonHtmlDocumentErrors<T>(f : () => Promise<T>)
       if ((e as Error).message !== nonHtmlErrorMessage)
         throw e;
 
+      console.log('Non-HTML document received; most likely rate-limited');
       await delay(backoff);
       backoff = Math.min(maxBackoff, backoff * 2);
     }
