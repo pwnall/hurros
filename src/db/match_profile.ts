@@ -54,8 +54,8 @@ export interface MatchProfileData {
   match_id : string,
   played_at: Date,
   data: MatchMetadata,
-  player_data: PersonalMatchMetadata,
   data_version: string,
+  player_data: PersonalMatchMetadata,
 }
 
 // Sequelize service object.
@@ -71,6 +71,7 @@ export const MatchProfile = sequelize.define<MatchProfileInstance, MatchProfileD
   played_at: Sequelize.DATE,
   data : Sequelize.JSON,
   data_version: Sequelize.STRING,
+  player_data: Sequelize.JSON,
 }, {
   createdAt: false,
   updatedAt: 'updated_at',
