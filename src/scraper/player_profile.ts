@@ -5,6 +5,7 @@ import {
 } from './string_parsing';
 import { extractTableText } from './table_parsing';
 import { throwUnlessHtmlDocument } from './rate_limit_helper';
+import { retryWhileNavigationTimeout } from './timeout_helper';
 
 // Updated every time the parser changes in a released version.
 export const profileParserVersion = "2";
@@ -14,7 +15,8 @@ export async function goToProfileById(page : puppeteer.Page,
                                       playerId : string) : Promise<void> {
   const pageUrl =
     `https://www.hotslogs.com/Player/Profile?PlayerID=${playerId}`;
-  await page.goto(pageUrl);
+
+  await retryWhileNavigationTimeout(async () => await page.goto(pageUrl));
 }
 
 // (unfinished) locates a player based on name.
@@ -111,8 +113,10 @@ export async function extractPlayerProfile(page : puppeteer.Page)
   }
 
   const table = await page.$('table.rgMasterTable');
-  if (!table)
+  if (!table) {
     await throwUnlessHtmlDocument(page);
+    return data;
+  }
 
   const tableText = await extractTableText(table, false);
   await table.dispose();

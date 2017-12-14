@@ -5,7 +5,9 @@ import {
   parseFormattedNumber, parseHoursDuration, parsePercentage,
 } from './string_parsing';
 import { extractTableText } from './table_parsing';
-import { catchNavigationTimeout, catchWaitingTimeout } from './timeout_helper';
+import {
+  catchWaitingTimeout, retryWhileNavigationTimeout,
+} from './timeout_helper';
 import { throwUnlessHtmlDocument } from './rate_limit_helper';
 
 // Updated every time the parser changes in a released version.
@@ -18,9 +20,7 @@ export async function goToMatchSummary(page : puppeteer.Page,
       'https://www.hotslogs.com/Player/MatchSummaryContainer?' +
       `ReplayID=${replayId}`;
 
-  await catchNavigationTimeout(async () => {
-    await page.goto(pageUrl, { timeout: 10000 });
-  });
+  await retryWhileNavigationTimeout(async () => await page.goto(pageUrl));
 }
 
 function findPlayerId(playerName : string, identities : PlayerIdentity[])

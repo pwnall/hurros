@@ -3,7 +3,7 @@ import * as puppeteer from 'puppeteer';
 // Resolves to true if the page appears to be an HTML document.
 //
 // Rate-limiting currently results in a non-HTML document.
-export async function isHtmlDocument(page : puppeteer.Page)
+async function isHtmlDocument(page : puppeteer.Page)
     : Promise<boolean> {
   const title = await page.mainFrame().title();
   if (title && title !== '')

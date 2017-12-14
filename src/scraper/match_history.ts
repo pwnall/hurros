@@ -3,7 +3,9 @@ import * as puppeteer from 'puppeteer';
 import { extractPlayerIdFromUrl, } from './player_profile';
 import { parseHoursDuration, parseTimestamp, } from './string_parsing';
 import { extractTableText } from './table_parsing';
-import { catchNavigationTimeout } from './timeout_helper';
+import {
+  catchNavigationTimeout, retryWhileNavigationTimeout,
+} from './timeout_helper';
 import { throwUnlessHtmlDocument } from './rate_limit_helper';
 
 // Updated every time the parser changes in a released version.
@@ -14,7 +16,8 @@ export async function goToMatchHistory(page : puppeteer.Page,
                                        playerId : string) : Promise<void> {
   const pageUrl =
       `https://www.hotslogs.com/Player/MatchHistory?PlayerID=${playerId}`;
-  await page.goto(pageUrl);
+
+  await retryWhileNavigationTimeout(async () => await page.goto(pageUrl));
 }
 
 // Selects a value from match history page's dropdown.
@@ -100,14 +103,16 @@ export async function extractMatchHistory(page : puppeteer.Page) :
   }, queueNameOption);
   await queueNameOption.dispose();
 
+  const historyData : MatchHistoryEntry[] = [];
+
   const table = await page.$('table.rgMasterTable');
-  if (!table)
+  if (!table) {
     await throwUnlessHtmlDocument(page);
+    return historyData;
+  }
 
   const tableText = await extractTableText(table, true);
   await table.dispose();
-
-  const historyData : MatchHistoryEntry[] = [];
 
   const playerId = extractPlayerIdFromUrl(page.url());
 
