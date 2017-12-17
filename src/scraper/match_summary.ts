@@ -93,15 +93,19 @@ export interface PlayerMatchSummary {
 //
 // Assumes the browser is navigated to a match summary page.
 //
-// The data should be merged with the data returned by extractMatchStats2() using
-// mergeMatchStats().
+// The data should be merged with the data returned by extractMatchStats2()
+// using mergeMatchStats().
 export async function extractMatchStats1(page : puppeteer.Page)
     : Promise<PlayerMatchSummary[]> {
 
+  // This function is generally called after extractMatchStats2, so we can rely
+  // on the waitForSelector there. The timeout here is very aggressive because
+  // summary pages for older matches do not have this table, so we have to spend
+  // the full timeout on those pages.
   await catchWaitingTimeout(async () => {
     await page.waitForSelector(
         '[class*="CharacterScoreResults"] table.rgMasterTable td',
-        { visible: true, timeout: 10000 });
+        { visible: true, timeout: 500 });
   });
 
   const matchData : PlayerMatchSummary[] = [];
@@ -404,8 +408,8 @@ export function mergeMatchStats(
 export async function extractMatchStats(page : puppeteer.Page) :
     Promise<PlayerMatchSummary[]> {
 
-  const matchData = await extractMatchStats1(page);
   const extraData = await extractMatchStats2(page);
+  const matchData = await extractMatchStats1(page);
   mergeMatchStats(matchData, extraData);
 
   if (matchData.length === 0) {
