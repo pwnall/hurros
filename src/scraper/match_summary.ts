@@ -23,14 +23,32 @@ export async function goToMatchSummary(page : puppeteer.Page,
   await retryWhileNavigationTimeout(async () => await page.goto(pageUrl));
 }
 
-function findPlayerId(playerName : string, identities : PlayerIdentity[])
-    : (string | null) {
-  while (identities.length != 0) {
-    const identity = identities.shift();
-    if (identity.name === playerName)
-      return identity.id;
+// Adds player IDs from playerIdentities to matchData.
+function mergePlayerIds(
+    matchData : Array<{ playerName? : string, playerId? : string }>,
+    playerIdentities : PlayerIdentity[]) {
+
+  const dataByName =
+      new Map<string, Array<{ playerName? : string, playerId? : string }>>();
+
+  for (let playerData of matchData) {
+    if (dataByName.has(playerData.playerName)) {
+      dataByName.get(playerData.playerName).push(playerData);
+    } else {
+      dataByName.set(playerData.playerName, [playerData]);
+    }
   }
-  return null;
+
+  for (let identity of playerIdentities) {
+    const playersData = dataByName.get(identity.name);
+    if (!playersData)
+      continue;
+
+    const playerData = playersData.shift();
+    if (!playerData)
+      continue;
+    playerData.playerId = identity.id;
+  }
 }
 
 export interface PlayerMatchSummary {
@@ -155,7 +173,6 @@ export async function extractMatchStats1(page : puppeteer.Page)
         case 'player':
           const playerName = value;
           playerStats.playerName = playerName;
-          playerStats.playerId = findPlayerId(playerName, playerLinkData);
           break;
         case 'hero':
           playerStats.hero = value;
@@ -207,9 +224,11 @@ export async function extractMatchStats1(page : puppeteer.Page)
       }
     }
 
-    if (playerStats.playerId || playerStats.playerName)
+    if (playerStats.playerName)
       matchData.push(playerStats);
   }
+
+  mergePlayerIds(matchData, playerLinkData);
 
   return matchData;
 }
@@ -275,7 +294,6 @@ export async function extractMatchStats2(page : puppeteer.Page) {
         case 'player':
           const playerName = value;
           playerStats.playerName = playerName;
-          playerStats.playerId = findPlayerId(playerName, playerLinkData);
           break;
         case 'hero':
           playerStats.hero = value;
@@ -312,9 +330,11 @@ export async function extractMatchStats2(page : puppeteer.Page) {
       }
     }
 
-    if (playerStats.playerId || playerStats.playerName)
+    if (playerStats.playerName)
       matchData.push(playerStats);
   }
+
+  mergePlayerIds(matchData, playerLinkData);
 
   return matchData;
 }
@@ -324,6 +344,17 @@ export async function extractMatchStats2(page : puppeteer.Page) {
 // The data is merged into the PlayerMatchSummary[] array, which is mutated.
 export function mergeMatchStats(
     data : PlayerMatchSummary[], extra : PlayerMatchSummaryExtra[]) {
+  // Some match entries miss player IDs, and there's a tiny possibility of
+  // having two players with the same profile name in a match.
+  //
+  // To avoid dealing with all this madness, we use the (hero name, team) to
+  // match up player data across the two tables. This works for "normal" games,
+  // but wouldn't work with things like brawls where all players land on the
+  // same hero.
+  //
+  // TODO(pwnall): If we ever want to do brawls, consider adding profile names
+  //               either as an alternative mechanism, or as a supplemental hash
+  //               key component. So, we'd be hashing on (hero, team, name).
   const hashKey =
       (data : (PlayerMatchSummary | PlayerMatchSummaryExtra)) : string => {
     return `${data.hero}-${data.blueTeam}`;

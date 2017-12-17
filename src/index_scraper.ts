@@ -45,8 +45,10 @@ const main = async () => {
   }
   */
 
-  //await goToMatchSummary(page, '129884617');  // New game with full data.
-  await goToMatchSummary(page, '31056044');  // Old game from 2015.
+  // await goToMatchSummary(page, '129884617');  // New game with full data.
+  // await goToMatchSummary(page, '31056044');  // Old game from 2015.
+  await goToMatchSummary(page, '10309929');  // Game with one missing playerID.
+
   const text = await extractMatchStats(page);
   console.log(inspect(text, false, null));
 

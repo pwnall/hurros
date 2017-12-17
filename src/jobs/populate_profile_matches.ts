@@ -8,8 +8,22 @@ import { retryWhileNonHtmlDocumentErrors } from '../scraper/rate_limit_helper';
 async function fetchMatch(
     metadata : MatchMetadata, pool : PagePool) : Promise<MatchSummary> {
   const dbMatch = await readMatch(metadata.replayId);
-  if (dbMatch !== null)
+
+  if (dbMatch !== null) {
+    // Re-fetch matches with invalid player IDs, in case the players get IDs.
+    // TODO(pwnall): Figure out a way to avoid re-fetching matches too often.
+
+    let hasInvalidPlayer = false;
+    for (let player of dbMatch.players) {
+      if (!player.playerId) {
+        hasInvalidPlayer = true;
+        break;
+      }
+    }
+
+    if (!hasInvalidPlayer)
       return dbMatch;
+  }
 
   const players = await pool.withPage(async (page) => {
     return await retryWhileNonHtmlDocumentErrors(async () => {

@@ -23,7 +23,8 @@ async function fetchConnectedProfileIds(profile : PlayerProfile)
   const playerIds = new Set<string>();
   for (let match of matches) {
     for (let player of match.players) {
-      playerIds.add(player.playerId);
+      if (player.playerId)  // Some match summary entries don't have player IDs.
+        playerIds.add(player.playerId);
     }
   }
 
@@ -54,10 +55,10 @@ const main = async () => {
   const profile = await populateProfileAndMatches('1141532', pool);
 
   const connectedProfileIds = await fetchConnectedProfileIds(profile);
+
   for (let connectedProfileId of connectedProfileIds) {
     await populateProfileAndMatches(connectedProfileId, pool);
   }
-
   await pool.shutdown();
 };
 
