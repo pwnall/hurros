@@ -1,5 +1,5 @@
 import { MatchMetadata, readProfileMatchMetadata } from '../db/match_profile';
-import { MatchSummary, writeMatch, readMatch } from '../db/match';
+import { MatchSummary, writeMatch, readMatch, readMatchUpdatedAt } from '../db/match';
 import { extractMatchStats, goToMatchSummary } from '../scraper/match_summary';
 import PagePool from '../scraper/page_pool';
 import { PlayerProfile } from '../scraper/player_profile';
@@ -10,18 +10,23 @@ async function fetchMatch(
   const dbMatch = await readMatch(metadata.replayId);
 
   if (dbMatch !== null) {
-    // Re-fetch matches with invalid player IDs, in case the players get IDs.
-    // TODO(pwnall): Figure out a way to avoid re-fetching matches too often.
+    // Check for matches with missing player IDs, and re-fetch them every 14
+    // days, in case they get fixed.
 
-    let hasInvalidPlayer = false;
+    let hasInvalidPlayerId = false;
     for (let player of dbMatch.players) {
       if (!player.playerId) {
-        hasInvalidPlayer = true;
+        hasInvalidPlayerId = true;
         break;
       }
     }
 
-    if (!hasInvalidPlayer)
+    if (!hasInvalidPlayerId)
+      return dbMatch;
+
+    const matchDate = await readMatchUpdatedAt(metadata.replayId);
+    const cacheLifetime = 14 * 24 * 60 * 60 * 1000;  // 14 days
+    if (matchDate && Date.now() - matchDate.getTime() <= cacheLifetime)
       return dbMatch;
   }
 

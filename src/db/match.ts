@@ -20,6 +20,8 @@ interface MatchData {
   id : string,
   data : MatchSummary,
   data_version : string,
+
+  updated_at? : Date,
 }
 
 // Sequelize service object.
@@ -39,7 +41,7 @@ const Match = sequelize.define<MatchInstance, MatchData>('match', {
   updatedAt: 'updated_at',
 });
 
-// Creates or updates a profile in the database cache.
+// Creates or updates a match in the database cache.
 export async function writeMatch(match : MatchSummary) {
   await Match.upsert({
     id: match.metadata.replayId,
@@ -48,7 +50,7 @@ export async function writeMatch(match : MatchSummary) {
   });
 }
 
-// Fetches a profile from the database cache.
+// Fetches a match from the database cache.
 export async function readMatch(replayId : string)
     : Promise<MatchSummary | null> {
   const record = await Match.findById(replayId);
@@ -56,4 +58,15 @@ export async function readMatch(replayId : string)
     return null;
 
   return record.data;
+}
+
+// Fetches the update time of a match in the database cache.
+export async function readMatchUpdatedAt(replayId : string)
+    : Promise<Date | null> {
+
+  const record = await Match.findById(replayId);
+  if (record === null || record.data_version !== matchParserVersion)
+    return null;
+
+  return record.updated_at;
 }
