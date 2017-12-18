@@ -6,6 +6,7 @@ import populateProfileMatches from './jobs/populate_profile_matches';
 import { PlayerProfile } from './scraper/player_profile';
 import { readProfileMatchMetadata } from './db/match_profile';
 import { readMatch, MatchSummary } from './db/match';
+import { app } from './server/app';
 
 async function readProfileMatches(profile : PlayerProfile)
     : Promise<MatchSummary[]> {
@@ -48,6 +49,7 @@ async function populateProfileAndMatches(profileId : string, pool : PagePool)
 
 const main = async () => {
   await sequelize.sync();
+  app.listen(parseInt(process.env['PORT'] || '3000'));
 
   // Concurrency seems to run into rate-limiting quite quickly.
   const pool = new PagePool(1);
