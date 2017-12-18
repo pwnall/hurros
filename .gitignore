@@ -6,6 +6,7 @@
 /.vagrant
 /deploy/ansible/tmp
 /deploy/ansible/*.retry
+/os_cluster.json
 
 # TypeScript compilation output
 /js
