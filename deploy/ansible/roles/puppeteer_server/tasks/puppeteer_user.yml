@@ -1,0 +1,8 @@
+---
+- name: create the puppeteer user
+  become: true
+  become_user: root
+  user:
+    name: "{{ puppeteer_user }}"
+    createhome: yes
+    state: present

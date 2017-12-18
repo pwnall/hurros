@@ -1,0 +1,14 @@
+---
+- name: read the path of puppeteer's Chromium
+  become: true
+  become_user: "{{ puppeteer_user }}"
+  command: node --print --eval "require('puppeteer').executablePath()"
+  args:
+    chdir: /home/{{ puppeteer_user }}
+  register: node_puppeteer_executable_path_result
+  changed_when: false
+
+- name: register the path of puppeteer's Chromium
+  set_fact:
+    puppeteer_chromium_path: "{{
+        node_puppeteer_executable_path_result.stdout | trim }}"

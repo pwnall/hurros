@@ -1,0 +1,8 @@
+---
+# Registers the SSH key used to connect to VMs.
+
+- name: register SSH key
+  os_keypair:
+    name: "{{ os_key_name }}"
+    public_key: "{{ os_public_key }}"
+    cloud: "{{ os_cloud }}"

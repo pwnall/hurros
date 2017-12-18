@@ -1,0 +1,5 @@
+---
+- name: generate known_hosts
+  template:
+    src: templates/known_hosts.j2
+    dest: ../keys/known_hosts

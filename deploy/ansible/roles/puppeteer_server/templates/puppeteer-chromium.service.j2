@@ -1,0 +1,21 @@
+[Unit]
+Description=Puppeteer Chromium Service
+After=network.target
+
+[Service]
+Type=simple
+User={{ puppeteer_user }}
+WorkingDirectiory=/home/{{ puppeteer_user }}
+ExecStart={{ puppeteer_chromium_path }} \
+    --disable-notifications --disable-gpu --headless \
+    --remote-debugging-address=0.0.0.0 \
+    --remote-debugging-port={{ puppeteer_chromium_port }} \
+    --user-data-dir={{ puppeteer_chromium_data_path }}
+Restart=always
+StandardInput=null
+StandardOutput=syslog
+StandardError=syslog
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target

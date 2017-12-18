@@ -1,5 +1,17 @@
+# Cloud credentials
+/deploy/ansible/clouds.yaml
+/deploy/keys
+
+# Deployment temporary files
+/.vagrant
+/deploy/ansible/tmp
+/deploy/ansible/*.retry
+
 # TypeScript compilation output
 /js
 
 # npm storage
 /node_modules
+
+# Database dump
+/hurros.sql

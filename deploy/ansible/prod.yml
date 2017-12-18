@@ -1,0 +1,39 @@
+---
+# This playbook sets up an entire production cluster. It is a bit slow, but it
+# guarantees that all the services are up to date and configured appropriately.
+# It should be the go-to playbook for deploying in most situations.
+
+- gather_facts: False
+  vars:
+    ansible_ssh_user: "{{ os_image_user }}"
+    os_image_user: "fedora"
+    os_prefix: "hurrosprod"
+    prod_master_group_name: "meta-system_role_{{ os_prefix }}_master"
+    prod_worker_group_name: "meta-system_role_{{ os_prefix }}_worker"
+  hosts: "{{ prod_master_group_name }}, {{ prod_worker_group_name }}"
+  tasks:
+  - import_role:
+      name: sys_python2
+  - import_role:
+      name: sudo_nopasswd
+  - import_role:
+      name: sys_network_manager
+  - import_role:
+      name: sys_package_update
+  - import_role:
+      name: sys_facts
+  - import_role:
+      name: disable_cockpit
+
+- gather_facts: False
+  vars:
+    ansible_ssh_user: "{{ os_image_user }}"
+    os_image_user: "fedora"
+    os_prefix: "hurrosprod"
+    prod_worker_group_name: "meta-system_role_{{ os_prefix }}_worker"
+  hosts: "{{ prod_worker_group_name }}"
+  tasks:
+  - import_role:
+      name: nodejs_npm
+  - import_role:
+      name: puppeteer_server

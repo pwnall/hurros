@@ -1,0 +1,6 @@
+---
+dependencies:
+- role: gen_ssh_keys
+- role: os_image
+- role: os_security_group
+- role: os_ssh_keys

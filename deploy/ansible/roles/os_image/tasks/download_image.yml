@@ -1,0 +1,12 @@
+---
+- name: create tmp directory
+  file: path=./tmp state=directory mode=0755
+
+- name: create tmp/images directory
+  file: path=./tmp/images state=directory mode=0755
+
+- name: download {{ os_image_name }} VM image
+  get_url:
+    dest: ./tmp/images/{{ os_image_name }}.qcow2
+    timeout: 3600
+    url: "{{ os_cloud_image_url }}"

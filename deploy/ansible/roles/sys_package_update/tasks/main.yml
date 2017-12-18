@@ -1,0 +1,34 @@
+---
+- block:
+  - name: update dnf packages
+    when: ansible_pkg_mgr == 'dnf'
+    # NOTE: The documentation for the Ansible dnf module states that the
+    #       arguments used below result in a "dnf -y update" command. The DNF
+    #       docs recommend using "dnf upgrade", and list "update" as a
+    #       deprecated alias for "upgrade". As long as both commands have the
+    #       same result, we're better off using the change detection built into
+    #       the dnf result, rather than passing the correct DNF command to
+    #       Ansible's command module.
+    dnf: name=* state=latest
+    notify:
+    - cast systemd reexec black magic
+    - reboot machine
+    - wait for machine to come back up
+    - reload facts after OS upgrade
+
+  - name: update apt packages
+    when: ansible_pkg_mgr == 'apt'
+    apt: upgrade=full update_cache=yes
+    notify:
+    - cast systemd reexec black magic
+    - reboot machine
+    - wait for machine to come back up
+    - reload facts after OS upgrade
+
+  # NOTE: This makes sure that the machine reboots before Ansible proceeds to
+  #       the next play.
+  - meta: flush_handlers
+
+  when: sys_package_update
+  become: true
+  become_user: root

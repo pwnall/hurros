@@ -1,0 +1,6 @@
+---
+# Creates the SSH keys used to authenticate the VMs.
+
+- import_tasks: create_host_keys.yml
+- import_tasks: set_ssh_key_facts.yml
+- import_tasks: gen_known_hosts.yml

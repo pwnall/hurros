@@ -1,0 +1,7 @@
+---
+- name: restart puppeteer Chromium daemon
+  become: true
+  become_user: root
+  systemd:
+    name: puppeteer-chromium
+    state: restarted

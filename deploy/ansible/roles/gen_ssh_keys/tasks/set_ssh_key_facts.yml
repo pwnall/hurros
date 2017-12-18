@@ -1,0 +1,7 @@
+---
+- name: read SSH keys into facts
+  set_fact:
+    master_private_key: "{{ lookup('file', '../keys/master_host')  }}"
+    master_public_key: "{{ lookup('file', '../keys/master_host.pub') }}"
+    worker_private_key: "{{ lookup('file', '../keys/worker_host')  }}"
+    worker_public_key: "{{ lookup('file', '../keys/worker_host.pub') }}"

@@ -1,0 +1,7 @@
+---
+- import_tasks: chromium_package.yml
+- import_tasks: puppeteer_user.yml
+- import_tasks: npm_package.yml
+- import_tasks: fact_chrome_path.yml
+- import_tasks: systemd_service.yml
+- import_tasks: firewalld.yml

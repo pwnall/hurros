@@ -1,0 +1,8 @@
+---
+os_cloud_image_url: https://download.fedoraproject.org/pub/fedora/linux/releases/27/CloudImages/x86_64/images/Fedora-Cloud-Base-27-1.6.x86_64.qcow2
+os_image_name: Fedora 27 Cloud
+#cloud_image_url: https://cloud-images.ubuntu.com/releases/16.04/release/ubuntu-16.04-server-cloudimg-amd64-disk1.img
+#image_name: Ubuntu 16.04 Server
+
+# The name of the section to be used in the OpenStack clouds.yaml config file.
+os_cloud: test

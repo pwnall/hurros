@@ -1,0 +1,10 @@
+---
+- name: install the puppeteer npm package
+  become: true
+  become_user: "{{ puppeteer_user }}"
+  npm:
+    name: puppeteer
+    path: /home/{{ puppeteer_user }}
+    state: present
+    production: yes
+    version: "{{ puppeteer_version }}"

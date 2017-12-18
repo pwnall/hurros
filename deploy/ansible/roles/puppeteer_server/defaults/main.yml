@@ -1,0 +1,12 @@
+---
+# The port that Chromium listens on.
+puppeteer_chromium_port: "11229"
+
+# The name of the user account user to run puppeteer.
+puppeteer_user: puppeteer
+
+# Full path to the directory holding the profile data used by Chrome.
+puppeteer_chromium_data_path: "/home/{{ puppeteer_user }}/.puppeteer-data"
+
+# The version of the installed npm package.
+puppeteer_version: "0.13"

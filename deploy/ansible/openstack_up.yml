@@ -1,0 +1,11 @@
+---
+# Ansible playbook that brings up an OpenStack cluster for scraping.
+
+- hosts: localhost
+  connection: local
+  roles:
+  - gen_ssh_keys
+  - os_image
+  - os_security_group
+  - os_ssh_keys
+  - os_vms

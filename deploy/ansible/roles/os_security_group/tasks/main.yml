@@ -1,0 +1,36 @@
+---
+# Defines the security group for VM network connectivity.
+
+- name: register security group
+  os_security_group:
+    name: "{{ os_security_group_name }}"
+    description: SSH + HTTP(S) from Internet
+    cloud: "{{ os_cloud }}"
+
+- name: add public TCP ports to security group
+  os_security_group_rule:
+    security_group: "{{ os_security_group_name }}"
+    direction: ingress
+    protocol: tcp
+    remote_ip_prefix: 0.0.0.0/0
+    port_range_min: "{{ item }}"
+    port_range_max: "{{ item }}"
+    cloud: "{{ os_cloud }}"
+  with_items:
+  - "22"     # SSH
+  - "53"     # DNS
+  - "80"     # HTTP
+  - "443"    # HTTPS
+  - "11229"  # Chromium WebSocket port.
+
+- name: add public UDP ports to security group
+  os_security_group_rule:
+    security_group: "{{ os_security_group_name }}"
+    direction: ingress
+    protocol: udp
+    remote_ip_prefix: 0.0.0.0/0
+    port_range_min: "{{ item }}"
+    port_range_max: "{{ item }}"
+    cloud: "{{ os_cloud }}"
+  with_items:
+  - "53"     # DNS

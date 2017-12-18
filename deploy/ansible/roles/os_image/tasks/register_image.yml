@@ -1,0 +1,9 @@
+---
+- name: register {{ os_image_name }} VM image
+  os_image:
+    name: "{{ os_image_name }}"
+    container_format: bare
+    disk_format: qcow2
+    timeout: 3600
+    filename: ./tmp/images/{{ os_image_name }}.qcow2
+    cloud: "{{ os_cloud }}"

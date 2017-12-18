@@ -1,0 +1,6 @@
+---
+# Downloads the operating system images used to boot the VMs, and registers the
+# images with OpenStack.
+
+- import_tasks: download_image.yml
+- import_tasks: register_image.yml

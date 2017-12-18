@@ -1,0 +1,10 @@
+---
+- name: open puppeteer Chromium daemon port in firewalld
+  when: has_firewalld != False
+  become: true
+  become_user: root
+  firewalld:
+    port: "{{ puppeteer_chromium_port }}=/tcp"
+    state: enabled
+    immediate: yes
+    permanent: yes

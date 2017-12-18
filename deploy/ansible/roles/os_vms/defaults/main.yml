@@ -1,0 +1,41 @@
+---
+# The OpenStack flavor (VM type) for the master (coordinator, Web + DB server).
+os_master_flavor: m1.1core
+
+# The OpenStack flavor (VM type) for the workers (Chrome scrapers).
+os_worker_flavor: lg.1core
+
+# The name of an OpenStack network that is connected to the Internet.
+os_public_net: inet
+
+# IP that will be assigned to the master VM's NIC.
+#
+# The default relies on OpenStack to assign an IP to the master VM.
+os_master_fixed_ip: false
+
+# Number of worker VMs that will be created.
+worker_count: 1
+
+# Type for all the volumes created for the cluster.
+os_volume_type: production
+
+# The password for the root and unprivileged user on the image.
+# This can only be used to log in using the console. SSH password
+# authentication is disabled for security.
+os_console_password: fedora
+
+# The SSH user name that can access the cloud image.
+# This only needs to change if the cloud image doesn't accept cloudinit data.
+os_image_user: fedora
+
+# Number of seconds to wait for VMs to come online.
+os_vm_bringup_timeout: 1800
+
+# The name of the configured master VM.
+os_master_instance_name: "{{ os_prefix }}-master"
+
+# The name prefix of the configured worker VMs.
+#
+# The worker VM names will have numbers appended to the prefix. For example, if
+# the prefix is "prod-worker", VM names will be "prod-worker1", etc.
+os_worker_instance_prefix: "{{ os_prefix }}-worker"

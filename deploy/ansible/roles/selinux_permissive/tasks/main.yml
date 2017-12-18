@@ -1,0 +1,6 @@
+---
+- name: set SELinux to permissive
+  when: ansible_selinux != False
+  become: true
+  become_user: root
+  selinux: policy=targeted state=permissive

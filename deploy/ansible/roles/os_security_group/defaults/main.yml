@@ -1,0 +1,9 @@
+---
+# The name of the section to be used in the OpenStack clouds.yaml config file.
+os_cloud: test
+
+# Name prefix used for all the entities created in the OpenStack cluster.
+os_prefix: hurrosprod
+
+# The name of the configured security group.
+os_security_group_name: "{{ os_prefix }} Security"

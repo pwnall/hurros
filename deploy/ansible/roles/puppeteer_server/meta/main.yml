@@ -1,0 +1,6 @@
+---
+dependencies:
+- role: sys_facts
+- role: nodejs_npm
+# Fedora 24+ doesn't let systemd exec from /home directories.
+- role: selinux_permissive

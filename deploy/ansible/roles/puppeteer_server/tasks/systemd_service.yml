@@ -1,0 +1,19 @@
+---
+- name: write puppeteer Chromium daemon systemd unit
+  become: true
+  become_user: root
+  template:
+    src: puppeteer-chromium.service.j2
+    dest: /etc/systemd/system/puppeteer-chromium.service
+  register: puppeteer_chromium_systemd_service_result
+  notify:
+  - restart puppeteer Chromium daemon
+
+- name: enable and start puppeteer Chromium daemon
+  become: true
+  become_user: root
+  systemd:
+    name: puppeteer-chromium.service
+    enabled: yes
+    state: started
+    daemon_reload: yes
