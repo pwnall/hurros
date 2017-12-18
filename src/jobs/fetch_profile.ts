@@ -1,5 +1,5 @@
 import { readProfile, writeProfile } from '../db/profile';
-import PagePool from '../scraper/page_pool';
+import PagePool from '../cluster/page_pool';
 import {
     PlayerProfile, extractPlayerProfile, goToProfileById,
 } from '../scraper/player_profile';

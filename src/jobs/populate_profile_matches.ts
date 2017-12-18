@@ -1,7 +1,7 @@
 import { MatchMetadata, readProfileMatchMetadata } from '../db/match_profile';
 import { MatchSummary, writeMatch, readMatch, readMatchUpdatedAt } from '../db/match';
 import { extractMatchStats, goToMatchSummary } from '../scraper/match_summary';
-import PagePool from '../scraper/page_pool';
+import PagePool from '../cluster/page_pool';
 import { PlayerProfile } from '../scraper/player_profile';
 import { retryWhileNonHtmlDocumentErrors } from '../scraper/rate_limit_helper';
 

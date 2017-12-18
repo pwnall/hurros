@@ -4,7 +4,7 @@ import {
   extractMatchHistory, goToMatchHistory, historyParserVersion,
   nextMatchHistory, selectMatchHistoryQueue
 } from '../scraper/match_history';
-import PagePool from '../scraper/page_pool';
+import PagePool from '../cluster/page_pool';
 import { PlayerProfile } from '../scraper/player_profile';
 import { retryWhileNonHtmlDocumentErrors } from '../scraper/rate_limit_helper';
 

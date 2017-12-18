@@ -1,5 +1,5 @@
 import { sequelize } from './db/connection';
-import PagePool from './scraper/page_pool';
+import PagePool from './cluster/page_pool';
 import fetchProfile from './jobs/fetch_profile';
 import populateProfileHistory from './jobs/populate_profile_history';
 import populateProfileMatches from './jobs/populate_profile_matches';
@@ -7,6 +7,7 @@ import { PlayerProfile } from './scraper/player_profile';
 import { readProfileMatchMetadata } from './db/match_profile';
 import { readMatch, MatchSummary } from './db/match';
 import { app } from './server/app';
+import { readChromeWsUrls } from './cluster/open_stack_cluster';
 
 async function readProfileMatches(profile : PlayerProfile)
     : Promise<MatchSummary[]> {
@@ -51,8 +52,19 @@ const main = async () => {
   await sequelize.sync();
   app.listen(parseInt(process.env['PORT'] || '3000'));
 
-  // Concurrency seems to run into rate-limiting quite quickly.
-  const pool = new PagePool(1);
+  const inventoryDumpPath = 'os_cluster.json';
+  const osPrefixes = [
+    'hurrosprod',
+  ];
+  const workerUrls = await readChromeWsUrls(inventoryDumpPath, osPrefixes);
+
+  const pool = new PagePool();
+  // Concurrency seems to run into rate-limiting quite quickly, so we only open
+  // 1 tab in all browsers we have access to.
+  await pool.launchBrowser(1);
+  await Promise.all(workerUrls.map(async (workerUrl) => {
+    await pool.connectBrowser(workerUrl, 1);
+  }));
 
   const profile = await populateProfileAndMatches('1141532', pool);
 
