@@ -40,13 +40,13 @@ async function populateProfileAndMatches(profileId : string, pool : PagePool)
     : Promise<PlayerProfile> {
   console.log(`Started crawling profile ${profileId}`);
   const profile = await fetchProfile(profileId, pool);
-  console.log('Populated profile');
+  console.log(`Populated profile ${profileId}`);
 
   await populateProfileHistory(profile, 'Quick Match', pool);
-  console.log('Populated main profile history');
+  console.log(`Populated profile ${profileId} history`);
 
   await populateProfileMatches(profile, pool);
-  console.log('Populated main profile matches');
+  console.log(`Populated profile ${profileId} matches`);
 
   return profile;
 }
