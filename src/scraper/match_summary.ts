@@ -98,22 +98,23 @@ export interface PlayerMatchSummary {
 export async function extractMatchStats1(page : puppeteer.Page)
     : Promise<PlayerMatchSummary[]> {
 
-  // This function is generally called after extractMatchStats2, so we can rely
-  // on the waitForSelector there. The timeout here is very aggressive because
-  // summary pages for older matches do not have this table, so we have to spend
-  // the full timeout on those pages.
-  await catchWaitingTimeout(async () => {
-    await page.waitForSelector(
-        '[class*="CharacterScoreResults"] table.rgMasterTable td',
-        { visible: true, timeout: 500 });
-  });
-
   const matchData : PlayerMatchSummary[] = [];
 
+  // This function is generally called after extractMatchStats2, so we can rely
+  // on the waitForSelector there.
   const table =
       await page.$('[class*="CharacterScoreResults"] table.rgMasterTable');
   if (!table)
     return matchData;
+
+  // If the table exists, spend some time waiting for its content to load. The
+  // timeout should be much more aggressive (like 500ms), but that would cause
+  // trouble with remote scrapers.
+  await catchWaitingTimeout(async () => {
+    await page.waitForSelector(
+        '[class*="CharacterScoreResults"] table.rgMasterTable td',
+        { visible: true, timeout: 10000 });
+  });
 
   const tableText = await extractTableText(table, true);
   const playerLinkData = await extractProfileLinkData(table);
