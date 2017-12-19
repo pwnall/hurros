@@ -71,6 +71,16 @@ export default class PagePool {
   // Number of pages available in the pool.
   pageCount() : number { return this.allPages_.size; }
 
+  pageWsUrls() : string[] {
+    const urls : string[] = [];
+    for (let page of this.allPages_) {
+      // TODO(pwnall): Try to get the URL exposed in the API.
+      //     Path: Page._client -> Session._connection -> Connection.url()
+      urls.push((page as any)._client._connection.url());
+    }
+    return urls;
+  }
+
   private checkoutPage() : Promise<puppeteer.Page> {
     if (this.shuttingDown_)
       return Promise.resolve(null);

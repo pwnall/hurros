@@ -44,6 +44,7 @@ router.get('/status/pool', async (ctx, next) => {
 
   ctx.response.body = {
     pageCount: pagePool.pageCount(),
+    urls: pagePool.pageWsUrls(),
   };
 });
 

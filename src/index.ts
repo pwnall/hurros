@@ -10,6 +10,7 @@ import populateProfileHistory from './jobs/populate_profile_history';
 import populateProfileMatches from './jobs/populate_profile_matches';
 import { PlayerProfile } from './scraper/player_profile';
 import { app, pagePool } from './server/app';
+import { throttledAsyncMap } from './jobs/throttled_async_map';
 
 async function readProfileMatches(profile : PlayerProfile)
     : Promise<MatchSummary[]> {
@@ -71,9 +72,11 @@ const main = async () => {
 
   const connectedProfileIds = await fetchConnectedProfileIds(profile);
 
-  for (let connectedProfileId of connectedProfileIds) {
+  await throttledAsyncMap(connectedProfileIds, pagePool.pageCount(),
+                    async (connectedProfileId) => {
     await populateProfileAndMatches(connectedProfileId, pagePool);
-  }
+  });
+
   await pagePool.shutdown();
 };
 

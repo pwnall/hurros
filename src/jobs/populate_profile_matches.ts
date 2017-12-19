@@ -1,3 +1,5 @@
+import { throttledAsyncMap } from './throttled_async_map';
+
 import { MatchMetadata, readProfileMatchMetadata } from '../db/match_profile';
 import { MatchSummary, writeMatch, readMatch, readMatchUpdatedAt } from '../db/match';
 import { extractMatchStats, goToMatchSummary } from '../scraper/match_summary';
@@ -46,7 +48,8 @@ export default async function populateProfileMatches(
     profile : PlayerProfile, pool : PagePool) : Promise<void> {
   const matchesMetadata = await readProfileMatchMetadata(profile.playerId);
 
-  await Promise.all(matchesMetadata.map(async (matchMetadata) => {
+  await throttledAsyncMap(matchesMetadata, pool.pageCount(),
+                          async (matchMetadata) => {
     try {
       return await fetchMatch(matchMetadata.data, pool);
     } catch (e) {
@@ -54,5 +57,5 @@ export default async function populateProfileMatches(
       console.error(`Failed to fetch match ${replayId}: ${e}`);
       return null;
     }
-  }));
+  });
 }
