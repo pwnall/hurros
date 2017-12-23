@@ -38,6 +38,6 @@
   },
   "scripts": {
     "dev": "./node_modules/.bin/nodemon --exec ./node_modules/.bin/ts-node -- ./src/index.ts",
-    "start": "./node_modules/.bin/ts-node --no-cache src/index.ts"
+    "start": "./node_modules/.bin/ts-node --no-cache --max_old_space_size=8192 src/index.ts"
   }
 }
