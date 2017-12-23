@@ -1,10 +1,11 @@
 {
   "name": "hurros",
-  "description": "hotslogs scraper",
+  "description": "Caching scraper for hotslogs.com",
   "private": true,
   "license": "UNLICENSED",
   "dependencies": {
     "koa": ">= 2.4.1",
+    "@koa/cors": ">= 2.2.1",
     "koa-json": ">= 2.0.2",
     "koa-router": ">= 7.3.0",
     "moment": ">= 2.19.4",
