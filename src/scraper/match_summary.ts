@@ -11,7 +11,7 @@ import {
 import { throwUnlessHtmlDocument } from './rate_limit_helper';
 
 // Updated every time the parser changes in a released version.
-export const matchParserVersion = "1";
+export const matchParserVersion = "2";
 
 // Navigates to a match's summary page.
 export async function goToMatchSummary(page : puppeteer.Page,
@@ -56,7 +56,7 @@ export interface PlayerMatchSummary {
   playerName? : string,
   playerId?: string,
   hero? : string,
-  blueTeam : boolean,
+  winningTeam : boolean,
 
   // Information from the first summary table.
   hlScore : {
@@ -157,7 +157,7 @@ export async function extractMatchStats1(page : puppeteer.Page)
     }
 
     const playerStats : PlayerMatchSummary = {
-      playerName: null, playerId: null, hero: null, blueTeam: null,
+      playerName: null, playerId: null, hero: null, winningTeam: null,
       hlScore: {
         overall: null, kills: null, teamwork: null, deaths: null,
         role: null, siege: null, xp: null,
@@ -183,7 +183,7 @@ export async function extractMatchStats1(page : puppeteer.Page)
           playerStats.hero = value;
           break;
         case 'team':
-          playerStats.blueTeam = value.toLowerCase() == 'true';
+          playerStats.winningTeam = value.toLowerCase() == 'true';
           break;
         case 'score':
           // This field contains the entire score sub-table.
@@ -242,7 +242,7 @@ interface PlayerMatchSummaryExtra {
   playerName? : string,
   playerId?: string,
   hero? : string,
-  blueTeam : boolean,
+  winningTeam : boolean,
 
   award? : string, heroLevel? : number,
   mmr : { starting? : number, delta? : number },
@@ -286,7 +286,7 @@ export async function extractMatchStats2(page : puppeteer.Page) {
 
   for (let i = 1; i < tableText.length; ++i) {
     const playerStats : PlayerMatchSummaryExtra = {
-      playerName: null, playerId: null, hero: null, blueTeam: null,
+      playerName: null, playerId: null, hero: null, winningTeam: null,
       award: null, heroLevel: null, mmr: { starting: null, delta: null },
       talentNames: [], talentDescriptions: {},
     };
@@ -314,7 +314,7 @@ export async function extractMatchStats2(page : puppeteer.Page) {
           playerStats.talentNames.push(value);
           break;
         case 'team':
-          playerStats.blueTeam = value.toLowerCase() == 'true';
+          playerStats.winningTeam = value.toLowerCase() == 'true';
           break;
         case 'mmr':
           playerStats.mmr.starting = parseFloat(value);
@@ -362,7 +362,7 @@ export function mergeMatchStats(
   //               key component. So, we'd be hashing on (hero, team, name).
   const hashKey =
       (data : (PlayerMatchSummary | PlayerMatchSummaryExtra)) : string => {
-    return `${data.hero}-${data.blueTeam}`;
+    return `${data.hero}-${data.winningTeam}`;
   };
   const indexedData : { [key : string] : PlayerMatchSummary } = {};
   for (let item of data)
@@ -373,7 +373,7 @@ export function mergeMatchStats(
     if (!item) {
       item = {
         playerName: null, playerId: null,
-        hero: extraItem.hero, blueTeam: extraItem.blueTeam,
+        hero: extraItem.hero, winningTeam: extraItem.winningTeam,
         hlScore: {
           overall: null, kills: null, teamwork: null, deaths: null,
           role: null, siege: null, xp: null,
