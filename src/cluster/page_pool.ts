@@ -1,4 +1,5 @@
 import * as puppeteer from 'puppeteer';
+import { clearTimeout } from 'timers';
 
 // Manages a Chrome instance and its tabs.
 export default class PagePool {
@@ -60,12 +61,31 @@ export default class PagePool {
   }
 
   // Connects to a remote browser and adds it to the pool.
-  async connectBrowser(wsUrl : string, maxPages : number = 1) : Promise<void> {
-    const browser = await puppeteer.connect({
-      browserWSEndpoint: wsUrl,
-    });
+  connectBrowser(wsUrl : string, maxPages : number = 1) : Promise<void> {
+    return new Promise((resolve, reject) => {
+      const timeout = 30 * 1000;  // 30 seconds
+      let connected = false;
+      let timedOut = false;
 
-    await this.addBrowser(browser, maxPages);
+      const timeoutHandler = setTimeout(() => {
+        if (connected)
+          return;
+
+        timedOut = true;
+        reject(new Error(`Timed out while connecting to ${wsUrl}`));
+      }, timeout);
+
+      puppeteer.connect({
+        browserWSEndpoint: wsUrl,
+      }).then((browser) => {
+        connected = true;
+        if (timedOut)
+          return;
+
+        clearTimeout(timeoutHandler);
+        resolve(this.addBrowser(browser, maxPages));
+      }).catch(reject);
+    });
   }
 
   // Number of pages available in the pool.

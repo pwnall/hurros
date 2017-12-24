@@ -1,6 +1,7 @@
 import 'source-map-support/register';
 
 import { readChromeWsUrls } from './cluster/open_stack_cluster';
+import { throttledAsyncMap } from './cluster/throttled_async_map';
 import PagePool from './cluster/page_pool';
 import { sequelize } from './db/connection';
 import { readMatch, MatchSummary } from './db/match';
@@ -10,7 +11,6 @@ import populateProfileHistory from './jobs/populate_profile_history';
 import populateProfileMatches from './jobs/populate_profile_matches';
 import { PlayerProfile } from './scraper/player_profile';
 import { app, pagePool } from './server/app';
-import { throttledAsyncMap } from './jobs/throttled_async_map';
 
 async function readProfileMatches(profile : PlayerProfile)
     : Promise<MatchSummary[]> {
@@ -60,13 +60,16 @@ const main = async () => {
     'hurrosprod',
   ];
   const workerUrls = await readChromeWsUrls(inventoryDumpPath, osPrefixes);
+  const maxParallelConnects = 4;
 
   // Concurrency seems to run into rate-limiting quite quickly, so we only open
   // 1 tab in all browsers we have access to.
   await pagePool.launchBrowser(1);
-  await Promise.all(workerUrls.map(async (workerUrl) => {
+  await throttledAsyncMap(workerUrls, maxParallelConnects, async (workerUrl) => {
+    console.log(`Connecting to worker WS: ${workerUrl}`);
     await pagePool.connectBrowser(workerUrl, 1);
-  }));
+    console.log(`Connected  to worker WS: ${workerUrl}`);
+  });
 
   const profile = await populateProfileAndMatches('1141532', pagePool);
 

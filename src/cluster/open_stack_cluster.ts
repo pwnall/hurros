@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as util from 'util';
 
 import fetch from 'node-fetch';
+import { throttledAsyncMap } from './throttled_async_map';
 
 const readFileAsync = util.promisify(fs.readFile);
 
@@ -38,7 +39,9 @@ async function fetchChromeWsUrl(serverAddress: string)
   const versionUrl = `http://${serverAddress}/json/version`;
 
   try {
+    console.log(`Fetching Chrome WS URL: ${versionUrl}`);
     const versionData = await (await fetch(versionUrl)).json();
+    console.log(`Fetched  Chrome WS URL: ${versionData.webSocketDebuggerUrl}`);
     return versionData.webSocketDebuggerUrl;
   } catch (e) {
     console.log('found error');
@@ -62,8 +65,9 @@ export async function readChromeWsUrls(
   const ips = await readOpenStackIPs(inventoryDumpPath, osPrefixes);
 
   const chromiumPort = 11229;
+  const maxParallelConnections = 4;
   const serverAddresses = ips.map((ip) => `${ip}:${chromiumPort}`);
 
-  return (await Promise.all(serverAddresses.map(fetchChromeWsUrl))).filter(
-      address => address !== null);
+  return (await throttledAsyncMap(serverAddresses, maxParallelConnections,
+      fetchChromeWsUrl)).filter(address => address !== null);
 }

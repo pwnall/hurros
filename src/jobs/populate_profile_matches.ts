@@ -1,7 +1,8 @@
-import { throttledAsyncMap } from './throttled_async_map';
-
+import { throttledAsyncMap } from '../cluster/throttled_async_map';
 import { MatchMetadata, readProfileMatchMetadata } from '../db/match_profile';
-import { MatchSummary, writeMatch, readMatch, readMatchUpdatedAt } from '../db/match';
+import {
+  MatchSummary, writeMatch, readMatch, readMatchUpdatedAt,
+} from '../db/match';
 import { extractMatchStats, goToMatchSummary } from '../scraper/match_summary';
 import PagePool from '../cluster/page_pool';
 import { PlayerProfile } from '../scraper/player_profile';
