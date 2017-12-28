@@ -1,10 +1,10 @@
+import PagePool from '../cluster/page_pool';
 import { readJob, writeJob } from '../db/job_cache';
 import { writeHistoryEntry } from '../db/match_profile';
 import {
   extractMatchHistory, goToMatchHistory, historyParserVersion,
   nextMatchHistory, selectMatchHistoryQueue
 } from '../scraper/match_history';
-import PagePool from '../cluster/page_pool';
 import { PlayerProfile } from '../scraper/player_profile';
 import { retryWhileNonHtmlDocumentErrors } from '../scraper/rate_limit_helper';
 
@@ -52,8 +52,7 @@ export default async function populateProfileHistory(
     });
   });
 
-  await writeJob(
-      namespace, profile.playerId, historyParserVersion,
-      { updatedAt: Date.now() });
+  await writeJob(namespace, profile.playerId, historyParserVersion,
+                 { updatedAt: Date.now() });
   return;
 }

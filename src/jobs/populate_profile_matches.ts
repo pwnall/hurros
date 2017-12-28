@@ -1,10 +1,13 @@
+import PagePool from '../cluster/page_pool';
 import { throttledAsyncMap } from '../cluster/throttled_async_map';
-import { MatchMetadata, readProfileMatchMetadata } from '../db/match_profile';
+import { readJob, writeJob } from '../db/job_cache';
 import {
   MatchSummary, writeMatch, readMatch, readMatchUpdatedAt,
 } from '../db/match';
-import { extractMatchStats, goToMatchSummary } from '../scraper/match_summary';
-import PagePool from '../cluster/page_pool';
+import { MatchMetadata, readProfileMatchMetadata } from '../db/match_profile';
+import {
+  extractMatchStats, goToMatchSummary, matchParserVersion,
+} from '../scraper/match_summary';
 import { PlayerProfile } from '../scraper/player_profile';
 import { retryWhileNonHtmlDocumentErrors } from '../scraper/rate_limit_helper';
 
@@ -47,6 +50,13 @@ async function fetchMatch(
 
 export default async function populateProfileMatches(
     profile : PlayerProfile, pool : PagePool) : Promise<void> {
+  const namespace =
+      `populate-profile-matches.${matchParserVersion}`;
+  const jobData = await readJob(
+      namespace, profile.playerId, matchParserVersion);
+  if (jobData !== null)
+    return;
+
   const matchesMetadata = await readProfileMatchMetadata(profile.playerId);
 
   await throttledAsyncMap(matchesMetadata, pool.pageCount(),
@@ -59,4 +69,7 @@ export default async function populateProfileMatches(
       return null;
     }
   });
+
+  await writeJob(namespace, profile.playerId, matchParserVersion,
+                 { updatedAt: Date.now() });
 }
