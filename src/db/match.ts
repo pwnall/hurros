@@ -54,24 +54,8 @@ export async function writeMatch(match : MatchSummary) {
 export async function readMatch(replayId : string)
     : Promise<MatchSummary | null> {
   const record = await MatchModel.findById(replayId);
-  if (record === null || (record.data_version !== matchParserVersion &&
-                          record.data_version !== "1"))
+  if (record === null || record.data_version !== matchParserVersion)
     return null;
-
-  // TODO(pwnall): Remove the additional version check above and in-place
-  //               upgrade code here when the database has been fully upgraded.
-  if (record.data_version === "1") {
-    const data = record.data;
-    for (let player of data.players) {
-      if ('blueTeam' in player) {
-        player.winningTeam = (player as any).blueTeam;
-        delete (player as any).blueTeam;
-      } else {
-        player.winningTeam = player.winningTeam || null;
-      }
-    }
-    await writeMatch(data);
-  }
 
   return record.data;
 }
