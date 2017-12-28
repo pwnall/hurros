@@ -29,7 +29,7 @@ interface MatchInstance extends Sequelize.Instance<MatchData>, MatchData {
 }
 
 // Sequelize model for MatchSummary.
-const Match = sequelize.define<MatchInstance, MatchData>('match', {
+export const MatchModel = sequelize.define<MatchInstance, MatchData>('match', {
   id: {
     type: Sequelize.STRING,
     primaryKey: true,
@@ -43,7 +43,7 @@ const Match = sequelize.define<MatchInstance, MatchData>('match', {
 
 // Creates or updates a match in the database cache.
 export async function writeMatch(match : MatchSummary) {
-  await Match.upsert({
+  await MatchModel.upsert({
     id: match.metadata.replayId,
     data: match,
     data_version: matchParserVersion,
@@ -53,7 +53,7 @@ export async function writeMatch(match : MatchSummary) {
 // Fetches a match from the database cache.
 export async function readMatch(replayId : string)
     : Promise<MatchSummary | null> {
-  const record = await Match.findById(replayId);
+  const record = await MatchModel.findById(replayId);
   if (record === null || (record.data_version !== matchParserVersion &&
                           record.data_version !== "1"))
     return null;
@@ -80,7 +80,7 @@ export async function readMatch(replayId : string)
 export async function readMatchUpdatedAt(replayId : string)
     : Promise<Date | null> {
 
-  const record = await Match.findById(replayId);
+  const record = await MatchModel.findById(replayId);
   if (record === null || record.data_version !== matchParserVersion)
     return null;
 

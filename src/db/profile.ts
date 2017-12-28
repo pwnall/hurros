@@ -3,7 +3,7 @@ import * as Sequelize from 'sequelize';
 import { PlayerProfile, profileParserVersion } from '../scraper/player_profile';
 
 import { sequelize } from './connection';
-import { MatchProfile } from './match_profile';
+import { MatchProfileModel } from './match_profile';
 
 // Sequelize service object.
 export interface ProfileData {
@@ -19,7 +19,8 @@ interface ProfileInstance extends Sequelize.Instance<ProfileData>, ProfileData {
 }
 
 // Sequelize model for PlayerProfile.
-const Profile = sequelize.define<ProfileInstance, ProfileData>('profile', {
+export const ProfileModel = sequelize.define<ProfileInstance, ProfileData>(
+    'profile', {
   id: {
     type: Sequelize.STRING,
     primaryKey: true,
@@ -33,11 +34,11 @@ const Profile = sequelize.define<ProfileInstance, ProfileData>('profile', {
   updatedAt: 'updated_at',
 });
 
-Profile.hasMany(MatchProfile, { foreignKey: 'profile_id' });
+ProfileModel.hasMany(MatchProfileModel, { foreignKey: 'profile_id' });
 
 // Creates or updates a profile in the database cache.
 export async function writeProfile(profile : PlayerProfile) {
-  await Profile.upsert({
+  await ProfileModel.upsert({
     id: profile.playerId,
     name: profile.playerName,
     region: profile.playerRegion,
@@ -50,7 +51,7 @@ export async function writeProfile(profile : PlayerProfile) {
 // Fetches a profile from the database cache.
 export async function readProfile(playerId : string)
     : Promise<PlayerProfile | null> {
-  const record = await Profile.findById(playerId);
+  const record = await ProfileModel.findById(playerId);
   if (record === null || record.data_version !== profileParserVersion)
     return null;
 

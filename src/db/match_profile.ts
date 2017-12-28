@@ -64,8 +64,8 @@ interface MatchProfileInstance extends Sequelize.Instance<MatchProfileData>,
 }
 
 // Sequelzie model for MatchProfileData.
-export const MatchProfile = sequelize.define<MatchProfileInstance, MatchProfileData>(
-    'match_profile', {
+export const MatchProfileModel =
+    sequelize.define<MatchProfileInstance, MatchProfileData>('match_profile', {
   profile_id: Sequelize.STRING,
   match_id: Sequelize.STRING,
   played_at: Sequelize.DATE,
@@ -88,7 +88,7 @@ export const MatchProfile = sequelize.define<MatchProfileInstance, MatchProfileD
 
 export async function readMatchProfile(playerId : string, replayId : string)
     : Promise<MatchProfileData | null> {
-  const record = await MatchProfile.findOne(
+  const record = await MatchProfileModel.findOne(
       { where: { profile_id: playerId, match_id: replayId } });
   if (record === null || record.data_version !== historyParserVersion)
     return null;
@@ -99,7 +99,7 @@ export async function readMatchProfile(playerId : string, replayId : string)
 // Write a MatchProfile record extracted from a MatchHistoryEntry.
 export async function writeHistoryEntry(
     entry : MatchHistoryEntry, profile : PlayerProfile) {
-  await MatchProfile.upsert({
+  await MatchProfileModel.upsert({
     profile_id: entry.playerId,
     match_id: entry.replayId,
     played_at: entry.time,
@@ -112,7 +112,7 @@ export async function writeHistoryEntry(
 // Read metadata for all the matches associated with a profile.
 export async function readProfileMatchMetadata(playerId : string)
     : Promise<MatchProfileData[]> {
-  const records = await MatchProfile.findAll(
+  const records = await MatchProfileModel.findAll(
     { where: { profile_id: playerId }});
 
   return records.filter(
