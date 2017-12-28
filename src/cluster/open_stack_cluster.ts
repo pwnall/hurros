@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as util from 'util';
 
 import fetch from 'node-fetch';
+
 import { throttledAsyncMap } from './throttled_async_map';
 
 const readFileAsync = util.promisify(fs.readFile);

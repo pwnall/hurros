@@ -1,0 +1,53 @@
+import * as KoaRouter from 'koa-router';
+
+import { readProfile } from '../db/profile';
+import { readProfileMatchMetadata } from '../db/match_profile';
+import { readMatch } from '../db/match';
+import readProfileMatches from '../jobs/read_profile_matches';
+
+const readers = {
+  readProfileMatches: async (ctx : KoaRouter.IRouterContext,
+                             next : () => Promise<any>) => {
+    await next();
+
+    const playerId = ctx.params.id as string;
+    const profile = await readProfile(playerId);
+    if (profile === null)
+      return;
+
+    const matches = await readProfileMatches(profile);
+    ctx.response.body = matches;
+  },
+  readProfileHistory: async (ctx : KoaRouter.IRouterContext,
+                             next : () => Promise<any>) => {
+    await next();
+
+    const playerId = ctx.params.id as string;
+    const profile = await readProfile(playerId);
+    if (profile === null)
+      return;
+
+    const matchesMetadata = await readProfileMatchMetadata(profile.playerId);
+    ctx.response.body = matchesMetadata;
+  },
+  readProfile: async (ctx : KoaRouter.IRouterContext,
+                      next : () => Promise<any>) => {
+    await next();
+
+    const playerId = ctx.params.id as string;
+    const profile = await readProfile(playerId);
+    if (profile !== null)
+      ctx.response.body = profile;
+  },
+  readMatch: async (ctx : KoaRouter.IRouterContext,
+                    next : () => Promise<any>) => {
+    await next();
+
+    const matchId = ctx.params.id as string;
+    const match = await readMatch(matchId);
+    if (match !== null)
+      ctx.response.body = match;
+  },
+};
+
+export default readers;
