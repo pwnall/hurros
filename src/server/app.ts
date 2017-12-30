@@ -16,6 +16,8 @@ router.get('/profiles/:id/matches', readers.readProfileMatches);
 router.get('/profiles/:id', readers.readProfile);
 router.get('/matches/:id', readers.readMatch);
 
+router.get('/fetch/profiles/:id', readers.fetchProfile);
+
 router.get('/status/pool', status.pool);
 router.get('/status/memory', status.memory);
 router.get('/status', status.index);

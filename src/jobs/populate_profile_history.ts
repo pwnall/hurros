@@ -31,8 +31,8 @@ export default async function populateProfileHistory(
         const entries = await extractMatchHistory(page);
 
         // The "next" button is always enabled on the history page, so we need a
-        // heuristic. We currently assume that if the first and last entry haven't
-        // changed, it means that the "next" button didn't do anything.
+        // heuristic. We currently assume that if the first and last entry
+        // haven't changed, it means that the "next" button didn't do anything.
         if (entries.length === 0 || (lastTopEntryId === entries[0].replayId &&
             lastBottomEntryId === entries[entries.length - 1].replayId)) {
           break;

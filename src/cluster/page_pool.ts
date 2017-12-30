@@ -16,6 +16,9 @@ export default class PagePool {
   // When the function returns or throws, the tab is checked back into the pool.
   // The function's return / throw value is passed to the caller.
   async withPage<T>(f : (page: puppeteer.Page) => Promise<T>) : Promise<T> {
+    if (this.shuttingDown_)
+      throw new Error("PagePool shut down");
+
     const page = await this.checkoutPage();
     try {
       const returnValue : T = await f(page);
