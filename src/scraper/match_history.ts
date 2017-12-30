@@ -9,7 +9,7 @@ import {
 import { throwUnlessHtmlDocument } from './rate_limit_helper';
 
 // Updated every time the parser changes in a released version.
-export const historyParserVersion = "2";
+export const historyParserVersion = "3";
 
 // Navigates to a player's match history page.
 export async function goToMatchHistory(page : puppeteer.Page,
@@ -165,6 +165,21 @@ export async function extractMatchHistory(page : puppeteer.Page) :
           console.log(
               `Unknown field in Match History main table: ${tableText[0][j]}`);
       }
+    }
+
+    if (entry.replayId === '0' || !entry.replayId) {
+      // Skip over artificial entries that break up seasons. Entries currently
+      // look like this:
+      // {  replayId: '0',
+      //    time: 2017-12-13T00:00:00.000Z,
+      //    durationSeconds: null,
+      //    won: false,
+      //    map: '2018 Season 1',
+      //    hero: 'Hero',
+      //    heroLevel: NaN,
+      //    mmr: { starting: NaN, delta: NaN } }
+      // }
+      continue;
     }
     historyData.push(entry);
   }

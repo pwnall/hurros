@@ -92,7 +92,11 @@ export default class PagePool {
   }
 
   // Number of pages available in the pool.
-  pageCount() : number { return this.allPages_.size; }
+  pageCount() : number {
+    if (this.shuttingDown_)
+      throw new Error("PagePool shut down");
+    return this.allPages_.size;
+  }
 
   pageWsUrls() : string[] {
     const urls : string[] = [];
