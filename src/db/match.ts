@@ -60,6 +60,21 @@ export async function readMatch(replayId : string)
   return record.data;
 }
 
+// Fetches a bunch of matches from the database cache.
+//
+// If the cache does not contain all the requested data, returns the subset of
+// the requested matches that does exist.
+export async function readMatches(replayIds : string[])
+    : Promise<MatchSummary[]> {
+  const records = await MatchModel.findAll({ where: {
+    id: { [Sequelize.Op.in]: replayIds }
+  }});
+
+  return records.
+      filter((record) => record.data_version === matchParserVersion).
+      map((record) => record.data);
+}
+
 // Fetches the update time of a match in the database cache.
 export async function readMatchUpdatedAt(replayId : string)
     : Promise<Date | null> {
