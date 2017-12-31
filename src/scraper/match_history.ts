@@ -23,10 +23,13 @@ export async function goToMatchHistory(page : puppeteer.Page,
 
 // Extracts the selected queue name from the match history page's dropdown.
 async function matchHistoryQueueName(page : puppeteer.Page) : Promise<string> {
+   await page.waitForSelector(
+      'div[id*="DropDownGameType"] li[class*="elected"]', { timeout: 10000 });
+
   return await page.evaluate(() => {
     const element = document.querySelector(
         'div[id*="DropDownGameType"] li[class*="elected"]');
-    return element && element.textContent;
+    return element.textContent;
   });
 }
 
