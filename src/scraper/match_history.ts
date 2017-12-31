@@ -1,10 +1,11 @@
 import * as puppeteer from 'puppeteer';
 
+import { elementHash, waitForElementHashChange } from './element_hash';
 import { extractPlayerIdFromUrl, } from './player_profile';
 import { parseHoursDuration, parseTimestamp, } from './string_parsing';
 import { extractTableText } from './table_parsing';
 import {
-  catchNavigationTimeout, retryWhileNavigationTimeout,
+  catchNavigationTimeout, catchWaitingTimeout, retryWhileNavigationTimeout,
 } from './timeout_helper';
 import { throwUnlessHtmlDocument } from './rate_limit_helper';
 
@@ -20,11 +21,27 @@ export async function goToMatchHistory(page : puppeteer.Page,
   await retryWhileNavigationTimeout(async () => await page.goto(pageUrl));
 }
 
+// Extracts the selected queue name from the match history page's dropdown.
+async function matchHistoryQueueName(page : puppeteer.Page) : Promise<string> {
+  return await page.evaluate(() => {
+    const element = document.querySelector(
+        'div[id*="DropDownGameType"] li[class*="elected"]');
+    return element && element.textContent;
+  });
+}
+
 // Selects a value from match history page's dropdown.
 //
 // Assumes the browser is navigated to a match history page.
 export async function selectMatchHistoryQueue(
     page : puppeteer.Page, queueName : string) : Promise<void> {
+  // Avoid doing the dropdown dance if the desired queue is already selected.
+  const currentQueueName = await matchHistoryQueueName(page);
+  if (currentQueueName.indexOf(queueName) !== -1)
+     return;
+
+  // Hash the current match data contents.
+  const currentHash = await elementHash(page, 'table.rgMasterTable');
 
   await page.waitForSelector(
       'div[id*="DropDownGameType"][class*="DropDown"]',
@@ -35,8 +52,14 @@ export async function selectMatchHistoryQueue(
   await matchTypeDropdown.click();
   await matchTypeDropdown.dispose();
 
-  await catchNavigationTimeout(async () => {
-    await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 });
+  // The dropdown is animated, and there's no good way to know when it settles.
+  // If we try to click the list item we want before the animation settles, the
+  // click coordinates will be wrong.
+  await page.waitFor(1000);
+
+  await catchWaitingTimeout(async () => {
+    await page.waitForSelector(
+        'div[id*="DropDownGameType"] li', { timeout: 10000 });
   });
 
   const queueNameOptions = await page.$$('div[id*="DropDownGameType"] li');
@@ -55,8 +78,10 @@ export async function selectMatchHistoryQueue(
   if (!clicked)
     throw new Error(`Option ${queueName} not found.`);
 
-  await catchNavigationTimeout(async () => {
-    await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 });
+  // TODO(pwnall): Content hashing can't detect the transition between two
+  //               queues with no history.
+  await catchWaitingTimeout(async () => {
+    await waitForElementHashChange(page, 'table.rgMasterTable', currentHash);
   });
 }
 
@@ -65,16 +90,27 @@ export async function selectMatchHistoryQueue(
 // Returns false if the page does not have a next button.
 export async function nextMatchHistory(page : puppeteer.Page)
     : Promise<boolean> {
-  const link = await page.$('a.paginate_button.next');
+  // We assume that the matches have been re-rendered when the page number
+  // changes.
+  const currentPageNumber : string = await page.evaluate(() => {
+    const pageButton = document.querySelector(
+        'a[class*="paginate"][class*="current"]');
+    return pageButton.textContent;
+  });
+
+  const link = await page.$(
+      'a[class*="paginate"][class*="next"]:not([class*="disable"])');
   if (!link) {
     await throwUnlessHtmlDocument(page);
-    return null;
+    return false;
   }
 
   await link.click();
-  await catchNavigationTimeout(async () => {
-    await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 10000 });
-  });
+  await page.waitForFunction((oldNumber : string) => {
+    const pageButton = document.querySelector(
+        'a[class*="paginate"][class*="current"]');
+    return pageButton.textContent !== oldNumber;
+  }, { polling: 'raf' }, currentPageNumber);
   return true;
 }
 
@@ -96,12 +132,7 @@ export interface MatchHistoryEntry {
 // Assumes the browser is navigated to a match history page.
 export async function extractMatchHistory(page : puppeteer.Page) :
     Promise<MatchHistoryEntry[]> {
-  const queueNameOption =
-      await page.$('div[id*="DropDownGameType"] li[class*="elected"]');
-  const queueName : string = await page.evaluate((chromeLi : HTMLLIElement) => {
-    return chromeLi.textContent;
-  }, queueNameOption);
-  await queueNameOption.dispose();
+  const queueName = await matchHistoryQueueName(page);
 
   const historyData : MatchHistoryEntry[] = [];
 
