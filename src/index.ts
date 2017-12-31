@@ -11,6 +11,8 @@ import populateProfileHistory from './jobs/populate_profile_history';
 import populateProfileMatches from './jobs/populate_profile_matches';
 import { PlayerProfile } from './scraper/player_profile';
 import { app, pagePool } from './server/app';
+import populateProfileMatchesHistories
+    from './jobs/populate_profile_matches_histories';
 
 async function readProfileMatches(profile : PlayerProfile)
     : Promise<MatchSummary[]> {
@@ -47,6 +49,9 @@ async function populateProfileAndMatches(profileId : string, pool : PagePool)
 
   await populateProfileMatches(profile, pool);
   console.log(`Populated profile ${profileId} matches`);
+
+  await populateProfileMatchesHistories(profile, pool);
+  console.log(`Populated profile ${profileId} match histories`);
 
   return profile;
 }

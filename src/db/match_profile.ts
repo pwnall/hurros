@@ -106,7 +106,7 @@ export async function writeHistoryEntry(
     data: matchMetadataFromHistoryEntry(entry, profile),
     player_data: personalMatchMetadataFromHistoryEntry(entry),
     data_version: historyParserVersion,
-  })
+  });
 }
 
 // Read metadata for all the matches associated with a profile.
