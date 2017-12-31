@@ -9,18 +9,19 @@ import { historyParserVersion } from '../scraper/match_history';
 
 export default async function populateMatchHistories(
     match : MatchSummary, pool : PagePool) : Promise<boolean> {
-  const playerIdSet = new Set<string>();
-  for (let player of match.players) {
-    const playerId = player.playerId;
-    if (playerId)
-    playerIdSet.add(playerId);
-  }
   const namespace =
       `populate-match-histories.${historyParserVersion}`;
   const jobData = await readJob(
       namespace, match.metadata.replayId, historyParserVersion);
   if (jobData !== null)
     return true;
+
+  const playerIdSet = new Set<string>();
+  for (let player of match.players) {
+    const playerId = player.playerId;
+    if (playerId)
+      playerIdSet.add(playerId);
+  }
   // TODO(pwnall): Skip populating histories for matches without 10 players?
   const playerIds = Array.from(playerIdSet);
 
