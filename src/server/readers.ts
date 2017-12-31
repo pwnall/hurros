@@ -6,6 +6,7 @@ import { readMatch } from '../db/match';
 import fetchProfile from '../jobs/fetch_profile';
 import readProfileMatches from '../jobs/read_profile_matches';
 import { pagePool } from './app';
+import populateProfileHistory from '../jobs/populate_profile_history';
 
 const readers = {
   readProfileMatches: async (ctx : KoaRouter.IRouterContext,
@@ -58,6 +59,21 @@ const readers = {
     const profile = await fetchProfile(playerId, pagePool);
     if (profile !== null)
       ctx.response.body = profile;
+  },
+  fetchProfileHistory: async (ctx : KoaRouter.IRouterContext,
+                              next : () => Promise<any>) => {
+    await next();
+
+    const playerId = ctx.params.id as string;
+    const queueName = ctx.params.queue_name as string;
+    const profile = await fetchProfile(playerId, pagePool);
+    if (profile === null)
+      return;
+
+    await populateProfileHistory(profile, queueName, pagePool);
+
+    const matchesMetadata = await readProfileMatchMetadata(profile.playerId);
+    ctx.response.body = matchesMetadata;
   },
 };
 
