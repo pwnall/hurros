@@ -48,14 +48,15 @@ async function fetchMatch(
   return match;
 }
 
+// Returns true for success, false if the job was abandoned due to an exception.
 export default async function populateProfileMatches(
-    profile : PlayerProfile, pool : PagePool) : Promise<void> {
+    profile : PlayerProfile, pool : PagePool) : Promise<boolean> {
   const namespace =
       `populate-profile-matches.${matchParserVersion}`;
   const jobData = await readJob(
       namespace, profile.playerId, matchParserVersion);
   if (jobData !== null)
-    return;
+    return true;
 
   const matchesMetadata = await readProfileMatchMetadata(profile.playerId);
 
@@ -66,10 +67,11 @@ export default async function populateProfileMatches(
     } catch (e) {
       const replayId = matchMetadata.data.replayId;
       console.error(`Failed to fetch match ${replayId}: ${e}`);
-      return null;
+      return false;
     }
   });
 
   await writeJob(namespace, profile.playerId, matchParserVersion,
                  { updatedAt: Date.now() });
+  return true;
 }
