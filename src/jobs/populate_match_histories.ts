@@ -7,6 +7,7 @@ import { readJob, writeJob } from '../db/job_cache';
 import { MatchSummary } from '../db/match';
 import { historyParserVersion } from '../scraper/match_history';
 
+// Returns true for success, false if the job was abandoned due to an exception.
 export default async function populateMatchHistories(
     match : MatchSummary, pool : PagePool) : Promise<boolean> {
   const namespace =

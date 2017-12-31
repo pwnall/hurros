@@ -9,7 +9,6 @@ import {
 } from '../scraper/match_history';
 import { PlayerProfile } from '../scraper/player_profile';
 import { retryWhileNonHtmlDocumentErrors } from '../scraper/rate_limit_helper';
-import populateProfileMatches from './populate_profile_matches';
 
 // Job variant that does not handle exceptions.
 async function populateProfileMatchHistory(
