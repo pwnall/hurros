@@ -1,0 +1,13 @@
+---
+# This playbook restarts the Chromium daemons on all workers.
+
+- gather_facts: True
+  vars:
+    ansible_ssh_user: "{{ os_image_user }}"
+    os_image_user: "fedora"
+    os_prefix: "hurrosprod"
+    prod_worker_group_name: "meta-system_role_{{ os_prefix }}_worker"
+  hosts: "{{ prod_worker_group_name }}"
+  tasks:
+  - import_role:
+      name: puppeteer_server_restart

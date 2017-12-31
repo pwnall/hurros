@@ -66,6 +66,12 @@ Create an entire cluster map.
 deploy/ansible/inventory/openstack.py --list > os_cluster.json
 ```
 
+Restart the Chromium instances used by Puppeteer on the workers.
+
+```bash
+ansible-playbook deploy/ansible/restart_chromium.yml
+```
+
 ## Operations
 
 Run the system.
