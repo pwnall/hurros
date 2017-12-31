@@ -21,12 +21,15 @@ const main = async () => {
   await pool.launchBrowser(1);
 
   await pool.withPage(async (page) => {
-    await goToProfileById(page, '161027'); // dunktrain, full profile
-    // await goToProfileById(page, '274047'); // pwnall, missing two ranks
+    // await goToProfileById(page, '161027'); // dunktrain, full profile.
+    // await goToProfileById(page, '274047'); // pwnall, missing two ranks.
+    await goToProfileById(page, '9198884'); // Blocked profile.
     const playerProfile = await extractPlayerProfile(page);
     console.log(playerProfile);
 
-    await goToMatchHistory(page, '274047');
+    /*
+    // await goToMatchHistory(page, '274047');
+    await goToMatchHistory(page, '9198884');  // Blocked profile.
     console.log('Gone to match history');
     await selectMatchHistoryQueue(page, 'Quick Match');
     console.log('Selected Quick Match');
@@ -40,13 +43,16 @@ const main = async () => {
       }
       console.log('Clicked next button');
     }
+    */
 
+    /*
     await goToMatchSummary(page, '129884617');  // New game with full data.
     // await goToMatchSummary(page, '31056044');  // Old game from 2015.
     // await goToMatchSummary(page, '10309929');  // Game with one missing playerID.
 
     const matchData = await extractMatchStats(page);
     console.log(inspect(matchData, false, null));
+    */
   });
 
   await pool.shutdown();

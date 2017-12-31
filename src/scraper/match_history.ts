@@ -19,6 +19,13 @@ export async function goToMatchHistory(page : puppeteer.Page,
       `https://www.hotslogs.com/Player/MatchHistory?PlayerID=${playerId}`;
 
   await retryWhileNavigationTimeout(async () => await page.goto(pageUrl));
+
+  // Hotslogs redirects to the home page for invalid player IDs.
+  // Formerly valid player IDs can become invalid if hotslogs decides to block
+  // profiles. Currently, silenced players have their profiles blocked.
+  const currentUrl = page.url();
+  if (currentUrl.indexOf(playerId) === -1)
+    throw new Error(`No match history page for ${playerId}; profile blocked?`);
 }
 
 // Extracts the selected queue name from the match history page's dropdown.

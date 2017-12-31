@@ -17,6 +17,13 @@ export async function goToProfileById(page : puppeteer.Page,
     `https://www.hotslogs.com/Player/Profile?PlayerID=${playerId}`;
 
   await retryWhileNavigationTimeout(async () => await page.goto(pageUrl));
+
+  // Hotslogs redirects to the home page for invalid player IDs.
+  // Formerly valid player IDs can become invalid if hotslogs decides to block
+  // profiles. Currently, silenced players have their profiles blocked.
+  const currentUrl = page.url();
+  if (currentUrl.indexOf(playerId) === -1)
+    throw new Error(`No profile page for ${playerId}; profile blocked?`);
 }
 
 // (unfinished) locates a player based on name.
