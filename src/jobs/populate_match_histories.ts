@@ -7,6 +7,17 @@ import { readJob, writeJob } from '../db/job_cache';
 import { MatchSummary } from '../db/match';
 import { historyParserVersion } from '../scraper/match_history';
 
+// Extracts the valid player IDs associated with a match.
+function matchPlayerIds(match : MatchSummary) : string[] {
+  const playerIdSet = new Set<string>();
+  for (let player of match.players) {
+    const playerId = player.playerId;
+    if (playerId)
+      playerIdSet.add(playerId);
+  }
+  return Array.from(playerIdSet);
+}
+
 // Returns true for success, false if the job was abandoned due to an exception.
 export default async function populateMatchHistories(
     match : MatchSummary, pool : PagePool) : Promise<boolean> {
@@ -17,14 +28,8 @@ export default async function populateMatchHistories(
   if (jobData !== null)
     return true;
 
-  const playerIdSet = new Set<string>();
-  for (let player of match.players) {
-    const playerId = player.playerId;
-    if (playerId)
-      playerIdSet.add(playerId);
-  }
   // TODO(pwnall): Skip populating histories for matches without 10 players?
-  const playerIds = Array.from(playerIdSet);
+  const playerIds = matchPlayerIds(match);
 
   try {
     throttledAsyncMap(playerIds, pool.pageCount(), async (playerId) => {

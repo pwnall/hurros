@@ -26,10 +26,15 @@ export default async function populateProfileMatchesHistories(
     }
   }
 
-  for (let match of matches)
-    await populateMatchHistories(match, pool);
+  let returnValue = true;
+  for (let match of matches) {
+    if (!await populateMatchHistories(match, pool))
+      returnValue = false;
+  }
 
-  await writeJob(namespace, profile.playerId, historyParserVersion,
-                 { updatedAt: Date.now() });
-  return true;
+  if (returnValue) {
+    await writeJob(namespace, profile.playerId, historyParserVersion,
+                   { updatedAt: Date.now() });
+  }
+  return returnValue;
 }

@@ -57,3 +57,18 @@ export async function readProfile(playerId : string)
 
   return record.data;
 }
+
+// Fetches a bunch of profiles from the database cache.
+//
+// If the cache does not contain all the requested data, returns the subset of
+// the requested profiles that do exist.
+export async function readProfiles(playerIds : string[])
+    : Promise<PlayerProfile[]> {
+  const records = await ProfileModel.findAll({ where: {
+    id: { [Sequelize.Op.in]: playerIds },
+  }});
+
+  return records.
+      filter((record) => record.data_version === profileParserVersion).
+      map((record) => record.data);
+}

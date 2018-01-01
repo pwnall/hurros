@@ -63,11 +63,11 @@ export async function readMatch(replayId : string)
 // Fetches a bunch of matches from the database cache.
 //
 // If the cache does not contain all the requested data, returns the subset of
-// the requested matches that does exist.
+// the requested matches that do exist.
 export async function readMatches(replayIds : string[])
     : Promise<MatchSummary[]> {
   const records = await MatchModel.findAll({ where: {
-    id: { [Sequelize.Op.in]: replayIds }
+    id: { [Sequelize.Op.in]: replayIds },
   }});
 
   return records.

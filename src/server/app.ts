@@ -15,6 +15,7 @@ router.get('/profiles/:id/history', readers.readProfileHistory);
 router.get('/profiles/:id/matches', readers.readProfileMatches);
 router.get('/profiles/:id', readers.readProfile);
 router.get('/matches/:id', readers.readMatch);
+router.get('/matches/:id/histories', readers.readMatchHistories);
 
 router.get('/fetch/profiles/:id', readers.fetchProfile);
 router.get('/fetch/profiles/:id/history/:queue_name',

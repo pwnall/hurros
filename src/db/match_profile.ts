@@ -88,8 +88,10 @@ export const MatchProfileModel =
 
 export async function readMatchProfile(playerId : string, replayId : string)
     : Promise<MatchProfileData | null> {
-  const record = await MatchProfileModel.findOne(
-      { where: { profile_id: playerId, match_id: replayId } });
+  const record = await MatchProfileModel.findOne({ where: {
+      profile_id: { [Sequelize.Op.eq]: playerId },
+      match_id: { [Sequelize.Op.eq]: replayId },
+  }});
   if (record === null || record.data_version !== historyParserVersion)
     return null;
 
@@ -112,8 +114,19 @@ export async function writeHistoryEntry(
 // Read metadata for all the matches associated with a profile.
 export async function readProfileMatchMetadata(playerId : string)
     : Promise<MatchProfileData[]> {
-  const records = await MatchProfileModel.findAll(
-    { where: { profile_id: playerId }});
+  const records = await MatchProfileModel.findAll({ where: {
+      profile_id: { [Sequelize.Op.eq]: playerId },
+  }});
+
+  return records.filter(
+      (record) => record.data_version === historyParserVersion);
+}
+
+export async function readProfilesMatchMetadata(playerIds : string[])
+    : Promise<MatchProfileData[]> {
+  const records = await MatchProfileModel.findAll({ where: {
+    profile_id: { [Sequelize.Op.in]: playerIds },
+  }});
 
   return records.filter(
       (record) => record.data_version === historyParserVersion);
