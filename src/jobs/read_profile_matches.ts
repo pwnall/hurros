@@ -17,7 +17,13 @@ export default async function readProfileMatches(
 
     return {
       metadata: matchMetadata.data,
-      players: null,
+      // Setting players to null would make it possible to distinguish between
+      // matches with no data and matches that haven't been scraped yet.
+      //
+      // However, having to check for nulls means that all the consumers of this
+      // job, have to add a special case check, which has proven to be of a
+      // pain.
+      players: [],
     };
   });
 }

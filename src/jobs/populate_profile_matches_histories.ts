@@ -16,20 +16,27 @@ export default async function populateProfileMatchesHistories(
   if (jobData !== null)
     return true;
 
-  const matches = await readProfileMatches(profile);
-  // Remove unnecessary match components to reduce memory consumption.
-  for (let match of matches) {
-    for (let player of match.players) {
-      player.talentNames = null;
-      player.talentDescriptions = null;
-      player.award = null;
-    }
-  }
-
   let returnValue = true;
-  for (let match of matches) {
-    if (!await populateMatchHistories(match, pool))
-      returnValue = false;
+  try {
+    const matches = await readProfileMatches(profile);
+    // Remove unnecessary match components to reduce memory consumption.
+    for (let match of matches) {
+      for (let player of match.players) {
+        player.talentNames = null;
+        player.talentDescriptions = null;
+        player.award = null;
+      }
+    }
+
+    for (let match of matches) {
+      if (!await populateMatchHistories(match, pool))
+        returnValue = false;
+    }
+  } catch(e) {
+    const profileId = profile.playerId;
+    console.error(
+        `Failed to populate matches players history for ${profileId}: ${e}`);
+    return false;
   }
 
   if (returnValue) {
