@@ -5,7 +5,7 @@ import { extractPlayerIdFromUrl, } from './player_profile';
 import { parseHoursDuration, parseTimestamp, } from './string_parsing';
 import { extractTableText } from './table_parsing';
 import {
-  catchNavigationTimeout, catchWaitingTimeout, retryWhileNavigationTimeout,
+  catchWaitingTimeout, retryWhileNavigationTimeout,
 } from './timeout_helper';
 import { throwUnlessHtmlDocument } from './rate_limit_helper';
 
@@ -116,6 +116,7 @@ export async function nextMatchHistory(page : puppeteer.Page)
   }
 
   await link.click();
+  await link.dispose();
   await page.waitForFunction((oldNumber : string) => {
     const pageButton = document.querySelector(
         'a[class*="paginate"][class*="current"]');
