@@ -85,3 +85,29 @@ export async function readMatchUpdatedAt(replayId : string)
 
   return record.updated_at;
 }
+
+// Fetch a page of matches from the database cache.
+//
+// This can be used to iterate over the entire database cache. pageStart should
+// be the empty string for the first call. Future calls should use nextPageStart
+// as the pageStart value. When nextPageStart is null, the iteration has
+// completed.
+//
+// Each call might return fewer than pageSize results due to internal filtering.
+export async function readMatchesPaged(pageStart : string, pageSize : number)
+    : Promise<{ data: MatchSummary[], nextPageStart: string | null }> {
+  const records = await MatchModel.findAll({
+    where: { id: { [Sequelize.Op.gt]: pageStart } },
+    order: [ 'id' ], limit: pageSize,
+  });
+
+  const resultSize = records.length;
+  const nextPageStart = (resultSize < pageSize) ?
+      null : records[resultSize - 1].id;
+
+  const data = records.
+      filter((record) => record.data_version === matchParserVersion).
+      map((record) => record.data);
+
+  return { data: data, nextPageStart: nextPageStart };
+}

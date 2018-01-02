@@ -26,6 +26,8 @@ router.get('/fetch/matches/:id', readers.fetchMatch);
 
 router.get('/paged/profiles/:start', pagers.pagedProfiles);
 router.get('/paged/profiles/', pagers.pagedProfiles);
+router.get('/paged/matches/:start', pagers.pagedMatches);
+router.get('/paged/matches/', pagers.pagedMatches);
 
 router.get('/status/pool', status.pool);
 router.get('/status/memory', status.memory);
