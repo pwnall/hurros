@@ -8,7 +8,7 @@ import { throwUnlessHtmlDocument } from './rate_limit_helper';
 import { retryWhileNavigationTimeout } from './timeout_helper';
 
 // Updated every time the parser changes in a released version.
-export const profileParserVersion = "2";
+export const profileParserVersion = "3";
 
 // Navigates to a player's profile page.
 export async function goToProfileById(page : puppeteer.Page,
