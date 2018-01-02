@@ -56,7 +56,8 @@ export default async function fetchMatch(replayId : string,  pool : PagePool)
     // If history population was slow, we'd do the database read for every queue
     // name, instead of blindly retrieving the history for all queue names
     // first.
-    const dbProfileMatchMetadata = await readProfileMatchMetadata(playerId);
+    const dbProfileMatchMetadata = await readProfileMatchMetadata(playerId,
+                                                                  null);
     for (let metadata of dbProfileMatchMetadata) {
       if (metadata.data.replayId === replayId) {
         const match = { metadata: metadata.data, players: players };
