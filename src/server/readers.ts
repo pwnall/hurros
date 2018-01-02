@@ -1,15 +1,19 @@
 import * as KoaRouter from 'koa-router';
 
+import PagePool from '../cluster/page_pool';
 import { readProfile } from '../db/profile';
 import { readMatch } from '../db/match';
 import { readProfileMatchMetadata } from '../db/match_profile';
 import fetchMatch from '../jobs/fetch_match';
 import fetchProfile from '../jobs/fetch_profile';
 import readProfileMatches from '../jobs/read_profile_matches';
-import { pagePool } from './app';
+import { resourceManager } from './app';
 import populateMatchHistories from '../jobs/populate_match_histories';
 import populateProfileHistory from '../jobs/populate_profile_history';
 import readMatchHistories from '../jobs/read_match_histories';
+
+// Used to fulfill all the requests coming from the HTTP API.
+const pagePool : PagePool = resourceManager;
 
 const readers = {
   readProfileMatches: async (ctx : KoaRouter.IRouterContext,

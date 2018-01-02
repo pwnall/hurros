@@ -10,9 +10,10 @@ import fetchProfile from './jobs/fetch_profile';
 import populateProfileHistory from './jobs/populate_profile_history';
 import populateProfileMatches from './jobs/populate_profile_matches';
 import { PlayerProfile } from './scraper/player_profile';
-import { app, pagePool } from './server/app';
+import { app, resourceManager } from './server/app';
 import populateProfileMatchesHistories
     from './jobs/populate_profile_matches_histories';
+import ResourceManager from './cluster/resource_manager';
 
 async function readProfileMatches(profile : PlayerProfile)
     : Promise<MatchSummary[]> {
@@ -62,10 +63,11 @@ async function populateProfileAndMatches(profileId : string, pool : PagePool)
   return profile;
 }
 
-const main = async () => {
-  await sequelize.sync();
-  app.listen(parseInt(process.env['PORT'] || '3000'));
-
+// Connect the resource manager to all available Chrome instances.
+//
+// This should eventually be driven by a database configuration that can be
+// changed via the HTTP API.
+async function setupResourceManager(resourceManager : ResourceManager) {
   const inventoryDumpPath = 'os_cluster.json';
   const osPrefixes = [
     'hurrosprod',
@@ -75,23 +77,39 @@ const main = async () => {
 
   // Concurrency seems to run into rate-limiting quite quickly, so we only open
   // 1 tab in all browsers we have access to.
-  await pagePool.launchBrowser(1);
+  await resourceManager.launchBrowser(1);
   await throttledAsyncMap(workerUrls, maxParallelConnects, async (workerUrl) => {
     console.log(`Connecting to worker WS: ${workerUrl}`);
-    await pagePool.connectBrowser(workerUrl, 1);
+    await resourceManager.connectBrowser(workerUrl, 1);
     console.log(`Connected  to worker WS: ${workerUrl}`);
   });
+}
 
-  const profile = await populateProfileAndMatches('1141532', pagePool);
+// Run the main job.
+//
+// This should eventually be driven by the HTTP API, which should be used to
+// queue / query jobs into / from the database.
+async function mainJob(pool : PagePool) {
+  const profile = await populateProfileAndMatches('1141532', pool);
 
   const connectedProfileIds = await fetchConnectedProfileIds(profile);
 
-  await throttledAsyncMap(connectedProfileIds, pagePool.pageCount(),
+  await throttledAsyncMap(connectedProfileIds, pool.pageCount(),
                     async (connectedProfileId) => {
-    await populateProfileAndMatches(connectedProfileId, pagePool);
+    await populateProfileAndMatches(connectedProfileId, pool);
   });
+}
 
-  await pagePool.shutdown();
+const main = async () => {
+  await sequelize.sync();
+  app.listen(parseInt(process.env['PORT'] || '3000'));
+
+  await setupResourceManager(resourceManager);
+
+  const pool : PagePool = resourceManager;
+  await mainJob(pool);
+
+  await resourceManager.shutdown();
 };
 
 main();

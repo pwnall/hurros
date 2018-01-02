@@ -3,12 +3,12 @@ import * as koaCors from '@koa/cors';
 import * as koaJson from 'koa-json';
 import * as KoaRouter from 'koa-router';
 
-import PagePool from '../cluster/page_pool';
+import ResourceManager from '../cluster/resource_manager';
 import pagers from './pagers';
 import readers from './readers';
 import status from './status';
 
-export const pagePool = new PagePool();
+export const resourceManager = new ResourceManager();
 
 const router = new KoaRouter();
 

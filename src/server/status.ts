@@ -2,7 +2,7 @@ import * as v8 from 'v8';
 
 import * as Koa from 'koa';
 
-import { pagePool } from './app';
+import { resourceManager } from './app';
 
 const status = {
   index: async (ctx : Koa.Context, next : () => Promise<any>) => {
@@ -23,8 +23,9 @@ const status = {
     await next();
 
     ctx.response.body = {
-      pageCount: pagePool.pageCount(),
-      urls: pagePool.pageWsUrls(),
+      pageCount: resourceManager.pageCount(),
+      queueSize: resourceManager.queueSize(),
+      urls: resourceManager.pageWsUrls(),
     };
   },
 };

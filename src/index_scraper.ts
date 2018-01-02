@@ -1,6 +1,8 @@
 import 'source-map-support/register';
 import { inspect } from 'util';
 
+import PagePool from './cluster/page_pool';
+import ResourceManager from './cluster/resource_manager';
 import {
   extractPlayerProfile,
   goToProfileById
@@ -12,13 +14,14 @@ import {
 import {
   extractMatchStats, goToMatchSummary,
 } from './scraper/match_summary';
-import PagePool from './cluster/page_pool';
 
 const main = async () => {
-  const pool = new PagePool();
+  const resourceManager = new ResourceManager();
   // Concurrency seems to run into rate-limiting quite quickly, so we only open
   // 1 tab in all browsers we have access to.
-  await pool.launchBrowser(1);
+  await resourceManager.launchBrowser(1);
+
+  const pool : PagePool = resourceManager;
 
   await pool.withPage(async (page) => {
     // await goToProfileById(page, '161027'); // dunktrain, full profile.
@@ -27,7 +30,6 @@ const main = async () => {
     const playerProfile = await extractPlayerProfile(page);
     console.log(playerProfile);
 
-    /*
     // await goToMatchHistory(page, '274047');
     await goToMatchHistory(page, '9198884');  // Blocked profile.
     console.log('Gone to match history');
@@ -43,19 +45,16 @@ const main = async () => {
       }
       console.log('Clicked next button');
     }
-    */
 
-    /*
     await goToMatchSummary(page, '129884617');  // New game with full data.
     // await goToMatchSummary(page, '31056044');  // Old game from 2015.
     // await goToMatchSummary(page, '10309929');  // Game with one missing playerID.
 
     const matchData = await extractMatchStats(page);
     console.log(inspect(matchData, false, null));
-    */
   });
 
-  await pool.shutdown();
+  await resourceManager.shutdown();
 };
 
 main();
