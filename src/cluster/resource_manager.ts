@@ -1,14 +1,23 @@
 import * as puppeteer from 'puppeteer';
 import { clearTimeout, setTimeout } from 'timers';
 
-import PagePool from './page_pool';
+import { PoolPriority } from './pool_priority';
+
+// The state stored for each page in the pool.
+interface ManagedPageInfo {
+  lastCheckedOutAt: number,
+  lastCheckedInAt: number,
+  jobPriority: PoolPriority,
+};
 
 // Concrete implementation of a page pool.
-export default class ResourceManager implements PagePool {
+export default class ResourceManager {
   constructor() {
     this.browsers_ = [];
-    this.queue_ = [];
-    this.allPages_ = new Set<puppeteer.Page>();
+    this.queues_ = [];
+    for (let i = 0; i < PoolPriority.Invalid; ++i)
+      this.queues_.push([]);
+    this.pageInfo_ = new Map<puppeteer.Page, ManagedPageInfo>();
     this.freePages_ = [];
     this.shuttingDown_ = false;
   }
@@ -17,11 +26,12 @@ export default class ResourceManager implements PagePool {
   //
   // When the function returns or throws, the tab is checked back into the pool.
   // The function's return / throw value is passed to the caller.
-  async withPage<T>(f : (page: puppeteer.Page) => Promise<T>) : Promise<T> {
+  async withPage<T>(priority : PoolPriority,
+                    f : (page: puppeteer.Page) => Promise<T>) : Promise<T> {
     if (this.shuttingDown_)
       throw new Error("PagePool shut down");
 
-    const page = await this.checkoutPage();
+    const page = await this.checkoutPage(priority);
     try {
       const returnValue : T = await f(page);
       return returnValue;
@@ -33,14 +43,16 @@ export default class ResourceManager implements PagePool {
   async shutdown() : Promise<void> {
     this.shuttingDown_ = true;
 
-    for (let queueItem of this.queue_) {
-      try {
-        queueItem(null);
-      } catch(e) {
-        console.error(`PagePool callback error: ${e}`);
+    for (let queue of this.queues_) {
+      for (let queueItem of queue) {
+        try {
+          queueItem(null);
+        } catch(e) {
+          console.error(`PagePool callback error: ${e}`);
+        }
       }
     }
-    this.queue_ = null;
+    this.queues_ = null;
 
     for (let browser of this.browsers_) {
       try {
@@ -51,7 +63,7 @@ export default class ResourceManager implements PagePool {
     }
 
     this.browsers_ = null;
-    this.allPages_.clear();
+    this.pageInfo_.clear();
     this.freePages_ = [];
   }
 
@@ -95,48 +107,75 @@ export default class ResourceManager implements PagePool {
 
   // Number of pages available in the pool.
   pageCount() : number {
-    if (this.shuttingDown_)
-      throw new Error("PagePool shut down");
-    return this.allPages_.size;
+    return this.pageInfo_.size;
   }
 
-  pageWsUrls() : string[] {
-    const urls : string[] = [];
-    for (let page of this.allPages_) {
+  // Number of pages that are free in the pool.
+  freePageCount() : number {
+    return this.freePages_.length;
+  }
+
+  // The size of the pending task queue at each priority level.
+  //
+  // Swelling queue sizes may indicate a job leak.
+  queueSizes() : { [queueName: string]: number } {
+    if (this.shuttingDown_)
+      throw new Error("PagePool shut down");
+
+    const sizes : { [ queueName : string]: number } = {};
+    for (let i = 0; i < this.queues_.length; ++i)
+      sizes[PoolPriority[i]] = this.queues_[i].length;
+
+    return sizes;
+  }
+
+  // Debugging information about each managed Chrome resource.
+  pageInfo() : { [wsUrl: string]: ManagedPageInfo } {
+    const result : { [wsUrl: string]: ManagedPageInfo } = {};
+    for (let [ page, pageInfo ] of this.pageInfo_) {
       // TODO(pwnall): Try to get the URL exposed in the API.
       //     Path: Page._client -> Session._connection -> Connection.url()
-      urls.push((page as any)._client._connection.url());
+      const pageWsUrl = (page as any)._client._connection.url();
+      result[pageWsUrl] = pageInfo;
     }
-    return urls;
+    return result;
   }
 
-  queueSize() : number {
-    if (this.shuttingDown_)
-      throw new Error("PagePool shut down");
-    return this.queue_.length;
-  }
-
-  private checkoutPage() : Promise<puppeteer.Page> {
+  private checkoutPage(priority : PoolPriority) : Promise<puppeteer.Page> {
     if (this.shuttingDown_)
       return Promise.resolve(null);
 
+    const now = Date.now();
     if (this.freePages_.length > 0) {
       const page = this.freePages_.pop();
+      const pageInfo = this.pageInfo_.get(page);
+      pageInfo.lastCheckedOutAt = now;
       return Promise.resolve(page);
     }
 
-    return new Promise((resolve) => { this.queue_.push(resolve); });
+    return new Promise((resolve) => { this.queues_[priority].push(resolve); });
   }
 
   private checkinPage(page : puppeteer.Page) : void {
-    if (this.queue_.length > 0) {
-      const queueItem = this.queue_.pop();
-      try {
-        queueItem(page);
-      } catch (e) {
-        console.error(`PagePool callback error: ${e}`);
+    const now = Date.now();
+    const pageInfo = this.pageInfo_.get(page);
+    pageInfo.lastCheckedInAt = now;
+
+    for (let i = 0; i < this.queues_.length; ++i) {
+      const queue = this.queues_[i];
+
+      if (queue.length > 0) {
+        const queueItem = queue.pop();
+        pageInfo.lastCheckedOutAt = now;
+
+        try {
+          queueItem(page);
+        } catch (e) {
+          console.error(`PagePool callback error: ${e}`);
+        }
+
+        return;
       }
-      return;
     }
 
     this.freePages_.push(page);
@@ -157,7 +196,11 @@ export default class ResourceManager implements PagePool {
     }
     this.browsers_.push(browser);
     for (let page of pages) {
-      this.allPages_.add(page);
+      this.pageInfo_.set(page, {
+        lastCheckedOutAt: 0,
+        lastCheckedInAt: 0,   // Will be overwritten by checkinPage.
+        jobPriority: PoolPriority.Invalid,
+      });
       this.checkinPage(page);
     }
   }
@@ -169,10 +212,12 @@ export default class ResourceManager implements PagePool {
   }
 
   private browsers_ : puppeteer.Browser[];
-  private allPages_ : Set<puppeteer.Page>;
+  private pageInfo_ : Map<puppeteer.Page, ManagedPageInfo>;
   private freePages_ : Array<puppeteer.Page>;
   private shuttingDown_ : boolean;
 
-  // Chain of promises, where each promise is resolved when a page is freed.
-  private queue_ : Array<(page : puppeteer.Page) => void>;
+  // Chains of promises, where each promise is resolved when a page is freed.
+  //
+  // The manager has one chain per PoolPriority level.
+  private queues_ : Array<(page : puppeteer.Page) => void>[];
 }

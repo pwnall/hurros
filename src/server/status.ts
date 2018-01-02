@@ -24,8 +24,8 @@ const status = {
 
     ctx.response.body = {
       pageCount: resourceManager.pageCount(),
-      queueSize: resourceManager.queueSize(),
-      urls: resourceManager.pageWsUrls(),
+      queueSizes: resourceManager.queueSizes(),
+      pageInfo: resourceManager.pageInfo(),
     };
   },
 };

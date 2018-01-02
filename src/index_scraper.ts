@@ -2,6 +2,7 @@ import 'source-map-support/register';
 import { inspect } from 'util';
 
 import PagePool from './cluster/page_pool';
+import { PrioritizedPagePool, PoolPriority } from './cluster/pool_priority';
 import ResourceManager from './cluster/resource_manager';
 import {
   extractPlayerProfile,
@@ -21,7 +22,8 @@ const main = async () => {
   // 1 tab in all browsers we have access to.
   await resourceManager.launchBrowser(1);
 
-  const pool : PagePool = resourceManager;
+  const pool : PagePool = new PrioritizedPagePool(resourceManager,
+                                                  PoolPriority.Medium);
 
   await pool.withPage(async (page) => {
     // await goToProfileById(page, '161027'); // dunktrain, full profile.

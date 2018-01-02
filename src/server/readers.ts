@@ -1,6 +1,7 @@
 import * as KoaRouter from 'koa-router';
 
 import PagePool from '../cluster/page_pool';
+import { PrioritizedPagePool, PoolPriority } from '../cluster/pool_priority';
 import { readProfile } from '../db/profile';
 import { readMatch } from '../db/match';
 import { readProfileMatchMetadata } from '../db/match_profile';
@@ -13,7 +14,8 @@ import populateProfileHistory from '../jobs/populate_profile_history';
 import readMatchHistories from '../jobs/read_match_histories';
 
 // Used to fulfill all the requests coming from the HTTP API.
-const pagePool : PagePool = resourceManager;
+const pagePool : PagePool = new PrioritizedPagePool(resourceManager,
+                                                    PoolPriority.Interactive);
 
 const readers = {
   readProfileMatches: async (ctx : KoaRouter.IRouterContext,

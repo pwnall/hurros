@@ -1,8 +1,10 @@
 import 'source-map-support/register';
 
 import { readChromeWsUrls } from './cluster/open_stack_cluster';
-import { throttledAsyncMap } from './cluster/throttled_async_map';
 import PagePool from './cluster/page_pool';
+import { PrioritizedPagePool, PoolPriority } from './cluster/pool_priority';
+import ResourceManager from './cluster/resource_manager';
+import { throttledAsyncMap } from './cluster/throttled_async_map';
 import { sequelize } from './db/connection';
 import { readMatch, MatchSummary } from './db/match';
 import { readProfileMatchMetadata } from './db/match_profile';
@@ -13,7 +15,6 @@ import { PlayerProfile } from './scraper/player_profile';
 import { app, resourceManager } from './server/app';
 import populateProfileMatchesHistories
     from './jobs/populate_profile_matches_histories';
-import ResourceManager from './cluster/resource_manager';
 
 async function readProfileMatches(profile : PlayerProfile)
     : Promise<MatchSummary[]> {
@@ -106,7 +107,8 @@ const main = async () => {
 
   await setupResourceManager(resourceManager);
 
-  const pool : PagePool = resourceManager;
+  const pool : PagePool = new PrioritizedPagePool(resourceManager,
+                                                  PoolPriority.Medium);
   await mainJob(pool);
 
   await resourceManager.shutdown();
