@@ -18,14 +18,17 @@ export default async function populateMatchHistories(
   if (jobData !== null)
     return true;
 
+  let returnValue = true;
   try {
     // TODO(pwnall): Skip populating histories for matches without 10 players?
     const playerIds = matchPlayerIds(match);
 
     await throttledAsyncMap(playerIds, pool.pageCount(), async (playerId) => {
       const playerProfile = await fetchProfile(playerId, pool);
-      await populateProfileHistory(
-          playerProfile, match.metadata.queueName, pool);
+      if (!await populateProfileHistory(
+          playerProfile, match.metadata.queueName, pool)) {
+        returnValue = false;
+      }
     });
   } catch(e) {
     const replayId = match.metadata.replayId;
@@ -34,7 +37,9 @@ export default async function populateMatchHistories(
     return false;
   }
 
-  await writeJob(namespace, match.metadata.replayId, historyParserVersion,
-                 { updatedAt: Date.now() });
+  if (returnValue) {
+    await writeJob(namespace, match.metadata.replayId, historyParserVersion,
+                  { updatedAt: Date.now() });
+  }
   return true;
 }

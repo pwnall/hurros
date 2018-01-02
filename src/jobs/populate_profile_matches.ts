@@ -1,15 +1,11 @@
+import updateMatch from './update_match';
 import PagePool from '../cluster/page_pool';
 import { throttledAsyncMap } from '../cluster/throttled_async_map';
 import { readJob, writeJob } from '../db/job_cache';
-import {
-  MatchSummary, writeMatch, readMatch, readMatchUpdatedAt,
-} from '../db/match';
-import { MatchMetadata, readProfileMatchMetadata } from '../db/match_profile';
-import {
-  extractMatchStats, goToMatchSummary, matchParserVersion,
-} from '../scraper/match_summary';
+import { readMatch, readMatchUpdatedAt, MatchSummary } from '../db/match';
+import { readProfileMatchMetadata, MatchMetadata } from '../db/match_profile';
+import { matchParserVersion } from '../scraper/match_summary';
 import { PlayerProfile } from '../scraper/player_profile';
-import { retryWhileNonHtmlDocumentErrors } from '../scraper/rate_limit_helper';
 
 // Return full match data corresponding to the given metadata.
 //
@@ -40,16 +36,7 @@ export async function fetchMatchFromMetadata(
       return dbMatch;
   }
 
-  const players = await pool.withPage(async (page) => {
-    return await retryWhileNonHtmlDocumentErrors(async () => {
-      await goToMatchSummary(page, metadata.replayId);
-      return await extractMatchStats(page);
-    });
-  });
-
-  const match = { metadata: metadata, players: players };
-  await writeMatch(match);
-  return match;
+  return await updateMatch(metadata, pool);
 }
 
 // Return true for success, false if the job was abandoned due to an exception.
