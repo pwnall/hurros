@@ -39,9 +39,15 @@ async function fetchConnectedProfileIds(profile : PlayerProfile)
 }
 
 async function populateProfileAndMatches(profileId : string, pool : PagePool)
-    : Promise<PlayerProfile> {
+    : Promise<PlayerProfile | null> {
   console.log(`Started crawling profile ${profileId}`);
-  const profile = await fetchProfile(profileId, pool);
+  let profile;
+  try {
+    profile = await fetchProfile(profileId, pool);
+  } catch(e) {
+    console.error(`Failed populating profile ${profileId}: ${e}`);
+    return null;
+  }
   console.log(`Populated profile ${profileId}`);
 
   await populateProfileHistory(profile, 'Quick Match', pool);
