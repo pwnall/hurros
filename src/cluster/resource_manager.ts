@@ -7,6 +7,8 @@ import { PoolPriority } from './pool_priority';
 interface ManagedPageInfo {
   lastCheckedOutAt: number,
   lastCheckedInAt: number,
+  lastTaskDuration: number,
+  lastError: Error | null,
   taskPriority: PoolPriority,
 };
 
@@ -38,10 +40,17 @@ export default class ResourceManager {
       throw new Error("PagePool shut down");
 
     const page = await this.checkoutPage(priority);
+    const pageInfo = this.pageInfo_.get(page);
+    const startedAt = Date.now();
     try {
       const returnValue : T = await f(page);
       return returnValue;
+    } catch (e) {
+      pageInfo.lastError = e;
+      throw e;
     } finally {
+      const endedAt = Date.now();
+      pageInfo.lastTaskDuration = endedAt - startedAt;
       this.checkinPage(page);
     }
   }
@@ -146,6 +155,8 @@ export default class ResourceManager {
       result[pageWsUrl] = {
         lastCheckedInAgo: (now - pageInfo.lastCheckedInAt) / 1000.0,
         lastCheckedOutAgo: (now - pageInfo.lastCheckedOutAt) / 1000.0,
+        lastDuration: pageInfo.lastTaskDuration / 1000.0,
+        lastErrorMessage: pageInfo.lastError && pageInfo.lastError.message,
         taskPriority: PoolPriority[pageInfo.taskPriority],
       };
     }
@@ -217,6 +228,8 @@ export default class ResourceManager {
       this.pageInfo_.set(page, {
         lastCheckedOutAt: 0,
         lastCheckedInAt: 0,   // Will be overwritten by checkinPage.
+        lastTaskDuration: 0,
+        lastError: null,
         taskPriority: PoolPriority.Invalid,
       });
       this.checkinPage(page);
