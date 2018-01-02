@@ -99,7 +99,12 @@ export async function extractPlayerProfile(page : puppeteer.Page)
     : Promise<PlayerProfile> {
   const data : PlayerProfile = {
     playerRegion: null, playerName: null, playerId: null,
-    mmr: { teamLeague: null, quickMatch: null },
+    mmr: {
+      heroLeague: null,
+      quickMatch: null,
+      teamLeague: null,
+      unrankedDraft: null,
+    },
     winRate: null, mvpRate: null,
     heroLevel: null,
     gamesPlayed: null,

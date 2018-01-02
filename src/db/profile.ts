@@ -36,7 +36,7 @@ export const ProfileModel = sequelize.define<ProfileInstance, ProfileData>(
 
 ProfileModel.hasMany(MatchProfileModel, { foreignKey: 'profile_id' });
 
-// Creates or updates a profile in the database cache.
+// Create or update a profile in the database cache.
 export async function writeProfile(profile : PlayerProfile) {
   await ProfileModel.upsert({
     id: profile.playerId,
@@ -48,7 +48,7 @@ export async function writeProfile(profile : PlayerProfile) {
   });
 }
 
-// Fetches a profile from the database cache.
+// Fetch a profile from the database cache.
 export async function readProfile(playerId : string)
     : Promise<PlayerProfile | null> {
   const record = await ProfileModel.findById(playerId);
@@ -58,7 +58,7 @@ export async function readProfile(playerId : string)
   return record.data;
 }
 
-// Fetches a bunch of profiles from the database cache.
+// Fetch a bunch of profiles from the database cache.
 //
 // If the cache does not contain all the requested data, returns the subset of
 // the requested profiles that do exist.
@@ -71,4 +71,30 @@ export async function readProfiles(playerIds : string[])
   return records.
       filter((record) => record.data_version === profileParserVersion).
       map((record) => record.data);
+}
+
+// Fetch a page of profiles from the database cache.
+//
+// This can be used to iterate over the entire database cache. pageStart should
+// be the empty string for the first call. Future calls should use nextPageStart
+// as the pageStart value. When nextPageStart is null, the iteration has
+// completed.
+//
+// Each call might return fewer than pageSize results due to internal filtering.
+export async function readProfilesPaged(pageStart : string, pageSize : number)
+    : Promise<{ data: PlayerProfile[], nextPageStart: string | null }> {
+  const records = await ProfileModel.findAll({
+    where: { id: { [Sequelize.Op.gt]: pageStart } },
+    order: [ 'id' ], limit: pageSize,
+  });
+
+  const resultSize = records.length;
+  const nextPageStart = (resultSize < pageSize) ?
+      null : records[resultSize - 1].id;
+
+  const data = records.
+      filter((record) => record.data_version === profileParserVersion).
+      map((record) => record.data);
+
+  return { data: data, nextPageStart: nextPageStart };
 }

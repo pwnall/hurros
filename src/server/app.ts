@@ -4,6 +4,7 @@ import * as koaJson from 'koa-json';
 import * as KoaRouter from 'koa-router';
 
 import PagePool from '../cluster/page_pool';
+import pagers from './pagers';
 import readers from './readers';
 import status from './status';
 
@@ -22,6 +23,9 @@ router.get('/fetch/profiles/:id/history/:queue_name',
            readers.fetchProfileHistory);
 router.get('/fetch/matches/:id/histories', readers.fetchMatchHistories);
 router.get('/fetch/matches/:id', readers.fetchMatch);
+
+router.get('/paged/profiles/:start', pagers.pagedProfiles);
+router.get('/paged/profiles/', pagers.pagedProfiles);
 
 router.get('/status/pool', status.pool);
 router.get('/status/memory', status.memory);
