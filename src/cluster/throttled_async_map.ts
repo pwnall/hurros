@@ -2,6 +2,9 @@ export async function throttledAsyncMap<InputType, OutputType>(
     input : InputType[], maxConcurrency : number,
     mapper: (arg : InputType) => Promise<OutputType>) : Promise<OutputType[]> {
 
+  if (input.length === 0)
+    return Promise.resolve([]);
+
   return new Promise<OutputType[]>((resolve, reject) => {
     let unresolved = input.length;
     let output = new Array<OutputType>(unresolved);
