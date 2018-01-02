@@ -5,8 +5,32 @@ import { PlayerProfile } from '../scraper/player_profile';
 import PagePool from '../cluster/page_pool';
 import { readJob, writeJob } from '../db/job_cache';
 import { historyParserVersion } from '../scraper/match_history';
+import { MatchSummary } from '../db/match';
+import { PlayerMatchSummary } from '../scraper/match_summary';
 
-// Returns true for success, false if the job was abandoned due to an exception.
+// Strip down match data to the bare minimum, to reduce memory consumption.
+function strippedMatchData(fullMatches : MatchSummary[]) : MatchSummary[] {
+  return fullMatches.map((fullMatch) => {
+    return {
+      metadata: {
+        replayId: fullMatch.metadata.replayId,
+        queueName: fullMatch.metadata.queueName,
+      },
+      players: fullMatch.players.map((fullPlayer) => {
+        return {
+          playerId: fullPlayer.playerId,
+          winningTeam: fullPlayer.winningTeam,
+          hlScore: null,
+          mmr: null,
+          talentNames: null,
+          talentDescriptions: null,
+        };
+      }),
+    };
+  });
+}
+
+// Return true for success, false if the job was abandoned due to an exception.
 export default async function populateProfileMatchesHistories(
     profile : PlayerProfile, pool : PagePool) : Promise<boolean> {
   const namespace =
@@ -18,15 +42,7 @@ export default async function populateProfileMatchesHistories(
 
   let returnValue = true;
   try {
-    const matches = await readProfileMatches(profile);
-    // Remove unnecessary match components to reduce memory consumption.
-    for (let match of matches) {
-      for (let player of match.players) {
-        player.talentNames = null;
-        player.talentDescriptions = null;
-        player.award = null;
-      }
-    }
+    const matches = strippedMatchData(await readProfileMatches(profile));
 
     for (let match of matches) {
       if (!await populateMatchHistories(match, pool))

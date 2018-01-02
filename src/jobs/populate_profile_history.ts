@@ -10,7 +10,7 @@ import {
 import { PlayerProfile } from '../scraper/player_profile';
 import { retryWhileNonHtmlDocumentErrors } from '../scraper/rate_limit_helper';
 
-// Job variant that does not handle exceptions.
+// Job logic, without exception handling.
 async function populateProfileMatchHistory(
     profile : PlayerProfile, queueName : string, page : puppeteer.Page)
     : Promise<void> {
@@ -43,7 +43,7 @@ async function populateProfileMatchHistory(
   }
 }
 
-// Returns true for success, false if the job was abandoned due to an exception.
+// Return true for success, false if the job was abandoned due to an exception.
 export default async function populateProfileHistory(
     profile : PlayerProfile, queueName : string, pool : PagePool)
     : Promise<boolean> {

@@ -7,7 +7,7 @@ import { readJob, writeJob } from '../db/job_cache';
 import { MatchSummary } from '../db/match';
 import { historyParserVersion } from '../scraper/match_history';
 
-// Extracts the valid player IDs associated with a match.
+// Extract the valid player IDs associated with a match.
 function matchPlayerIds(match : MatchSummary) : string[] {
   const playerIdSet = new Set<string>();
   for (let player of match.players) {
@@ -18,7 +18,7 @@ function matchPlayerIds(match : MatchSummary) : string[] {
   return Array.from(playerIdSet);
 }
 
-// Returns true for success, false if the job was abandoned due to an exception.
+// Return true for success, false if the job was abandoned due to an exception.
 export default async function populateMatchHistories(
     match : MatchSummary, pool : PagePool) : Promise<boolean> {
   const namespace =

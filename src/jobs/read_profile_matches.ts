@@ -2,8 +2,9 @@ import { readProfileMatchMetadata } from '../db/match_profile';
 import { readMatches, MatchSummary } from '../db/match';
 import { PlayerProfile } from '../scraper/player_profile';
 
+// Read all the matches associated with a profile.
 export default async function readProfileMatches(
-    profile : PlayerProfile) : Promise<Array<MatchSummary>> {
+    profile : PlayerProfile) : Promise<MatchSummary[]> {
   const matchesMetadata = await readProfileMatchMetadata(profile.playerId);
 
   const replayIds = matchesMetadata.map((metadata) => metadata.data.replayId);

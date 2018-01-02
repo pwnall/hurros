@@ -2,7 +2,7 @@ import { MatchSummary } from '../db/match';
 import { MatchProfileData, readProfilesMatchMetadata } from '../db/match_profile';
 
 
-// Extracts the valid player IDs associated with a match.
+// Extract the valid player IDs associated with a match.
 //
 // TODO(pwnall): This is duplicated in populate_match_histories.
 function matchPlayerIds(match : MatchSummary) : string[] {
@@ -15,7 +15,7 @@ function matchPlayerIds(match : MatchSummary) : string[] {
   return Array.from(playerIdSet);
 }
 
-// Reads the histories of all players associated with a match.
+// Read the histories of all players associated with a match.
 //
 // Each player's history is a list of matches, sorted by match time. The matches
 // will all be in the same queue type as the given match, and will have been

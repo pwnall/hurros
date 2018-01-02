@@ -48,7 +48,7 @@ async function fetchMatch(
   return match;
 }
 
-// Returns true for success, false if the job was abandoned due to an exception.
+// Return true for success, false if the job was abandoned due to an exception.
 export default async function populateProfileMatches(
     profile : PlayerProfile, pool : PagePool) : Promise<boolean> {
   const namespace =
