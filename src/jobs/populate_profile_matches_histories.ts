@@ -6,7 +6,6 @@ import PagePool from '../cluster/page_pool';
 import { readJob, writeJob } from '../db/job_cache';
 import { historyParserVersion } from '../scraper/match_history';
 import { MatchSummary } from '../db/match';
-import { PlayerMatchSummary } from '../scraper/match_summary';
 
 // Strip down match data to the bare minimum, to reduce memory consumption.
 function strippedMatchData(fullMatches : MatchSummary[]) : MatchSummary[] {

@@ -4,6 +4,12 @@ import * as Sequelize from 'sequelize';
 const databaseUrl = 'postgres://localhost/hurros';
 
 export const sequelize = new Sequelize(databaseUrl, {
-  native: true, logging: false,
-  pool: { max: 10, min: 2, acquire: 24 * 60 * 60 * 1000 },
+  operatorsAliases: false,  // Disables an old feature with security problems.
+  native: true,  // Passed to the pg module, so it can use pg-native.
+  logging: false,  // Database logging creates a lot of noise.
+  pool: {
+    max: 6,  // More I/O concurrency costs more RAM.
+    min: 2,  // Not sure this is relevant, we always keep the DB busy.
+    acquire: 24 * 60 * 60 * 1000,  // Avoid timeouts during brief DB floods.
+  },
 });
