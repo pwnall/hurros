@@ -103,6 +103,7 @@ const readers = {
     const queueName = ctx.params.queue_name as string;
     const profile = await fetchProfile(playerId, apiPagePool);
 
+    await populateProfileHistory(profile, queueName, apiPagePool);
     await populateProfileMatches(profile, queueName, apiPagePool);
 
     const matches = await readProfileMatches(profile, queueName);
