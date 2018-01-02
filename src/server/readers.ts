@@ -1,8 +1,9 @@
 import * as KoaRouter from 'koa-router';
 
 import { readProfile } from '../db/profile';
-import { readProfileMatchMetadata } from '../db/match_profile';
 import { readMatch } from '../db/match';
+import { readProfileMatchMetadata } from '../db/match_profile';
+import fetchMatch from '../jobs/fetch_match';
 import fetchProfile from '../jobs/fetch_profile';
 import readProfileMatches from '../jobs/read_profile_matches';
 import { pagePool } from './app';
@@ -90,6 +91,15 @@ const readers = {
 
     const matchesMetadata = await readProfileMatchMetadata(profile.playerId);
     ctx.response.body = matchesMetadata;
+  },
+  fetchMatch: async (ctx : KoaRouter.IRouterContext,
+                     next : () => Promise<any>) => {
+    await next();
+
+    const matchId = ctx.params.id as string;
+    const match = await fetchMatch(matchId, pagePool);
+    if (match !== null)
+      ctx.response.body = match;
   },
 };
 

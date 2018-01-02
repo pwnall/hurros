@@ -20,6 +20,7 @@ router.get('/matches/:id/histories', readers.readMatchHistories);
 router.get('/fetch/profiles/:id', readers.fetchProfile);
 router.get('/fetch/profiles/:id/history/:queue_name',
            readers.fetchProfileHistory);
+router.get('/fetch/matches/:id', readers.fetchMatch);
 
 router.get('/status/pool', status.pool);
 router.get('/status/memory', status.memory);

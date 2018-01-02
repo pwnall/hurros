@@ -1,9 +1,7 @@
+import updateProfile from './update_profile';
 import PagePool from '../cluster/page_pool';
-import { readProfile, writeProfile } from '../db/profile';
-import {
-    PlayerProfile, extractPlayerProfile, goToProfileById,
-} from '../scraper/player_profile';
-import { retryWhileNonHtmlDocumentErrors } from '../scraper/rate_limit_helper';
+import { readProfile } from '../db/profile';
+import { PlayerProfile } from '../scraper/player_profile';
 
 // Return the profile for the given player ID.
 //
@@ -15,13 +13,7 @@ export default async function fetchProfile(playerId : string,  pool : PagePool)
   if (dbProfile !== null)
     return dbProfile;
 
-  const profile = await pool.withPage(async (page) => {
-    return await retryWhileNonHtmlDocumentErrors(async () => {
-      await goToProfileById(page, playerId);
-      return await extractPlayerProfile(page);
-    });
-  });
-  await writeProfile(profile);
+  // TODO(pwnall): Attempt to refresh old profile data.
 
-  return profile;
+  return await updateProfile(playerId, pool);
 }

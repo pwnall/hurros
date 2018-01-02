@@ -111,7 +111,7 @@ export async function writeHistoryEntry(
   });
 }
 
-// Read metadata for all the matches associated with a profile.
+// Fetch metadata for all the matches associated with a profile.
 export async function readProfileMatchMetadata(playerId : string)
     : Promise<MatchProfileData[]> {
   const records = await MatchProfileModel.findAll({ where: {
@@ -122,10 +122,29 @@ export async function readProfileMatchMetadata(playerId : string)
       (record) => record.data_version === historyParserVersion);
 }
 
+// Fetch metadata for all the matches associated with a profile.
+//
+// If the cache does not contain all the requested data, returns the subset of
+// the requested metadata that does exist.
 export async function readProfilesMatchMetadata(playerIds : string[])
     : Promise<MatchProfileData[]> {
   const records = await MatchProfileModel.findAll({ where: {
     profile_id: { [Sequelize.Op.in]: playerIds },
+  }});
+
+  return records.filter(
+      (record) => record.data_version === historyParserVersion);
+}
+
+// Fetch metadata for a given match.
+//
+// Metadata entries connect matches with player profiles, so a match can have up
+// to 10 metadata entries. The metadata is a subset of the data returned by
+// readMatch(), and that method should be preferred in most cases.
+export async function readMatchMetadata(replayId : string)
+    : Promise<MatchProfileData[]> {
+  const records = await MatchProfileModel.findAll({ where: {
+    match_id: { [Sequelize.Op.eq]: replayId },
   }});
 
   return records.filter(

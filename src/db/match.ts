@@ -41,7 +41,7 @@ export const MatchModel = sequelize.define<MatchInstance, MatchData>('match', {
   updatedAt: 'updated_at',
 });
 
-// Creates or updates a match in the database cache.
+// Create or update a match in the database cache.
 export async function writeMatch(match : MatchSummary) {
   await MatchModel.upsert({
     id: match.metadata.replayId,
@@ -50,7 +50,7 @@ export async function writeMatch(match : MatchSummary) {
   });
 }
 
-// Fetches a match from the database cache.
+// Fetch a match from the database cache.
 export async function readMatch(replayId : string)
     : Promise<MatchSummary | null> {
   const record = await MatchModel.findById(replayId);
@@ -75,7 +75,7 @@ export async function readMatches(replayIds : string[])
       map((record) => record.data);
 }
 
-// Fetches the update time of a match in the database cache.
+// Fetch the update time of a match in the database cache.
 export async function readMatchUpdatedAt(replayId : string)
     : Promise<Date | null> {
 

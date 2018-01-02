@@ -11,7 +11,11 @@ import {
 import { PlayerProfile } from '../scraper/player_profile';
 import { retryWhileNonHtmlDocumentErrors } from '../scraper/rate_limit_helper';
 
-async function fetchMatch(
+// Return full match data corresponding to the given metadata.
+//
+// The database is used as a caching layer. If the profile is not cached, uses a
+// scraper to read the match data from hotslogs.
+export async function fetchMatchFromMetadata(
     metadata : MatchMetadata, pool : PagePool) : Promise<MatchSummary> {
   const dbMatch = await readMatch(metadata.replayId);
 
@@ -63,7 +67,7 @@ export default async function populateProfileMatches(
   await throttledAsyncMap(matchesMetadata, pool.pageCount(),
                           async (matchMetadata) => {
     try {
-      return await fetchMatch(matchMetadata.data, pool);
+      return await fetchMatchFromMetadata(matchMetadata.data, pool);
     } catch (e) {
       const replayId = matchMetadata.data.replayId;
       console.error(`Failed to fetch match ${replayId}: ${e}`);

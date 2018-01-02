@@ -1,19 +1,7 @@
+
+import { matchPlayerIds } from './helpers';
 import { MatchSummary } from '../db/match';
 import { MatchProfileData, readProfilesMatchMetadata } from '../db/match_profile';
-
-
-// Extract the valid player IDs associated with a match.
-//
-// TODO(pwnall): This is duplicated in populate_match_histories.
-function matchPlayerIds(match : MatchSummary) : string[] {
-  const playerIdSet = new Set<string>();
-  for (let player of match.players) {
-    const playerId = player.playerId;
-    if (playerId)
-      playerIdSet.add(playerId);
-  }
-  return Array.from(playerIdSet);
-}
 
 // Read the histories of all players associated with a match.
 //

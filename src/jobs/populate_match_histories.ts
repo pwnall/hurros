@@ -1,22 +1,12 @@
 import fetchProfile from './fetch_profile';
 import populateProfileHistory from './populate_profile_history';
 
+import { matchPlayerIds } from './helpers';
 import PagePool from '../cluster/page_pool';
 import { throttledAsyncMap } from '../cluster/throttled_async_map';
 import { readJob, writeJob } from '../db/job_cache';
 import { MatchSummary } from '../db/match';
 import { historyParserVersion } from '../scraper/match_history';
-
-// Extract the valid player IDs associated with a match.
-function matchPlayerIds(match : MatchSummary) : string[] {
-  const playerIdSet = new Set<string>();
-  for (let player of match.players) {
-    const playerId = player.playerId;
-    if (playerId)
-      playerIdSet.add(playerId);
-  }
-  return Array.from(playerIdSet);
-}
 
 // Return true for success, false if the job was abandoned due to an exception.
 export default async function populateMatchHistories(
