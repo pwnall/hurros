@@ -41,15 +41,17 @@ export async function fetchMatchFromMetadata(
 
 // Return true for success, false if the job was abandoned due to an exception.
 export default async function populateProfileMatches(
-    profile : PlayerProfile, pool : PagePool) : Promise<boolean> {
+    profile : PlayerProfile, queueName : string | null, pool : PagePool)
+    : Promise<boolean> {
   const namespace =
-      `populate-profile-matches.${matchParserVersion}`;
+      `populate-profile-matches.${queueName}.${matchParserVersion}`;
   const jobData = await readJob(
       namespace, profile.playerId, matchParserVersion);
   if (jobData !== null)
     return true;
 
-  const matchesMetadata = await readProfileMatchMetadata(profile.playerId);
+  const matchesMetadata = await readProfileMatchMetadata(profile.playerId,
+                                                         queueName);
 
   await throttledAsyncMap(matchesMetadata, pool.pageCount(),
                           async (matchMetadata) => {

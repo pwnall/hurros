@@ -6,28 +6,19 @@ import { PrioritizedPagePool, PoolPriority } from './cluster/pool_priority';
 import ResourceManager from './cluster/resource_manager';
 import { throttledAsyncMap } from './cluster/throttled_async_map';
 import { sequelize } from './db/connection';
-import { readMatch, MatchSummary } from './db/match';
-import { readProfileMatchMetadata } from './db/match_profile';
 import fetchProfile from './jobs/fetch_profile';
 import populateProfileHistory from './jobs/populate_profile_history';
 import populateProfileMatches from './jobs/populate_profile_matches';
+import readProfileMatches from './jobs/read_profile_matches';
 import { PlayerProfile } from './scraper/player_profile';
 import { app, resourceManager } from './server/app';
 import populateProfileMatchesHistories
     from './jobs/populate_profile_matches_histories';
 
-async function readProfileMatches(profile : PlayerProfile)
-    : Promise<MatchSummary[]> {
-  const matchesMetadata = await readProfileMatchMetadata(profile.playerId);
-
-  return (await Promise.all(matchesMetadata.map(async (matchMetadata) => {
-    return await readMatch(matchMetadata.data.replayId);
-  }))).filter((matchSummary) => matchSummary !== null);
-}
-
-async function fetchConnectedProfileIds(profile : PlayerProfile)
+async function fetchConnectedProfileIds(
+    profile : PlayerProfile, queueName : string | null)
     : Promise<string[]> {
-  const matches = await readProfileMatches(profile);
+  const matches = await readProfileMatches(profile, queueName);
 
   const playerIds = new Set<string>();
   for (let match of matches) {
@@ -40,7 +31,8 @@ async function fetchConnectedProfileIds(profile : PlayerProfile)
   return Array.from(playerIds);
 }
 
-async function populateProfileAndMatches(profileId : string, pool : PagePool)
+async function populateProfileAndMatches(
+    profileId : string, queueName : string, pool : PagePool)
     : Promise<PlayerProfile | null> {
   console.log(`Started crawling profile ${profileId}`);
   let profile;
@@ -52,13 +44,13 @@ async function populateProfileAndMatches(profileId : string, pool : PagePool)
   }
   console.log(`Populated profile ${profileId}`);
 
-  await populateProfileHistory(profile, 'Quick Match', pool);
+  await populateProfileHistory(profile, queueName, pool);
   console.log(`Populated profile ${profileId} history`);
 
-  await populateProfileMatches(profile, pool);
+  await populateProfileMatches(profile, queueName, pool);
   console.log(`Populated profile ${profileId} matches`);
 
-  await populateProfileMatchesHistories(profile, pool);
+  await populateProfileMatchesHistories(profile, queueName, pool);
   console.log(`Populated profile ${profileId} match histories`);
 
   return profile;
@@ -92,13 +84,18 @@ async function setupResourceManager(resourceManager : ResourceManager) {
 // This should eventually be driven by the HTTP API, which should be used to
 // queue / query jobs into / from the database.
 async function mainJob(pool : PagePool) {
-  const profile = await populateProfileAndMatches('1141532', pool);
+  const mainProfileId = '1141532';
+  const queueName = 'Quick Match';
 
-  const connectedProfileIds = await fetchConnectedProfileIds(profile);
+  const profile = await populateProfileAndMatches(mainProfileId, queueName,
+                                                  pool);
+
+  const connectedProfileIds = await fetchConnectedProfileIds(profile,
+                                                             queueName);
 
   await throttledAsyncMap(connectedProfileIds, pool.pageCount(),
                     async (connectedProfileId) => {
-    await populateProfileAndMatches(connectedProfileId, pool);
+    await populateProfileAndMatches(connectedProfileId, queueName, pool);
   });
 }
 

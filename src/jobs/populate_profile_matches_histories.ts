@@ -31,9 +31,10 @@ function strippedMatchData(fullMatches : MatchSummary[]) : MatchSummary[] {
 
 // Return true for success, false if the job was abandoned due to an exception.
 export default async function populateProfileMatchesHistories(
-    profile : PlayerProfile, pool : PagePool) : Promise<boolean> {
+    profile : PlayerProfile, queueName : string | null, pool : PagePool)
+    : Promise<boolean> {
   const namespace =
-      `populate-profile-matches-histories.${historyParserVersion}`;
+      `populate-profile-matches-histories.${queueName}.${historyParserVersion}`;
   const jobData = await readJob(
       namespace, profile.playerId, historyParserVersion);
   if (jobData !== null)
@@ -41,7 +42,8 @@ export default async function populateProfileMatchesHistories(
 
   let returnValue = true;
   try {
-    const matches = strippedMatchData(await readProfileMatches(profile));
+    const matches = strippedMatchData(await readProfileMatches(profile,
+                                                               queueName));
 
     for (let match of matches) {
       if (!await populateMatchHistories(match, pool))

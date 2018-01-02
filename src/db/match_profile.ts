@@ -112,14 +112,22 @@ export async function writeHistoryEntry(
 }
 
 // Fetch metadata for all the matches associated with a profile.
-export async function readProfileMatchMetadata(playerId : string)
+//
+// If queueName is null, fetches matches from all queues.
+export async function readProfileMatchMetadata(
+    playerId : string, queueName : string | null)
     : Promise<MatchProfileData[]> {
   const records = await MatchProfileModel.findAll({ where: {
       profile_id: { [Sequelize.Op.eq]: playerId },
   }});
 
-  return records.filter(
+  const updatedRecords = records.filter(
       (record) => record.data_version === historyParserVersion);
+  if (queueName === null)
+    return updatedRecords;
+
+  return updatedRecords.filter(
+      (record) => record.data.queueName.indexOf(queueName) !== -1);
 }
 
 // Fetch metadata for all the matches associated with a profile.

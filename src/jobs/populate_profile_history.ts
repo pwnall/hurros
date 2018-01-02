@@ -10,7 +10,7 @@ export default async function populateProfileHistory(
     : Promise<boolean> {
 
   const namespace =
-      `populate-profile-history.${historyParserVersion}.${queueName}`;
+      `populate-profile-history.${queueName}.${historyParserVersion}`;
   const jobData = await readJob(namespace, profile.playerId,
                                 historyParserVersion);
   if (jobData !== null)

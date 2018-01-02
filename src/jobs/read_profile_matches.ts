@@ -4,9 +4,10 @@ import { PlayerProfile } from '../scraper/player_profile';
 
 // Read all the matches associated with a profile.
 export default async function readProfileMatches(
-    profile : PlayerProfile) : Promise<MatchSummary[]> {
-  const matchesMetadata = await readProfileMatchMetadata(profile.playerId);
-
+    profile : PlayerProfile, queueName : string | null)
+    : Promise<MatchSummary[]> {
+  const matchesMetadata = await readProfileMatchMetadata(profile.playerId,
+                                                         queueName);
   const replayIds = matchesMetadata.map((metadata) => metadata.data.replayId);
   const matchById : { [id: string]: MatchSummary } = {};
   for (let match of await readMatches(replayIds))
