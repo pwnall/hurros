@@ -7,6 +7,7 @@ import fetchMatch from '../jobs/fetch_match';
 import fetchProfile from '../jobs/fetch_profile';
 import readProfileMatches from '../jobs/read_profile_matches';
 import { pagePool } from './app';
+import populateMatchHistories from '../jobs/populate_match_histories';
 import populateProfileHistory from '../jobs/populate_profile_history';
 import readMatchHistories from '../jobs/read_match_histories';
 
@@ -74,8 +75,7 @@ const readers = {
 
     const playerId = ctx.params.id as string;
     const profile = await fetchProfile(playerId, pagePool);
-    if (profile !== null)
-      ctx.response.body = profile;
+    ctx.response.body = profile;
   },
   fetchProfileHistory: async (ctx : KoaRouter.IRouterContext,
                               next : () => Promise<any>) => {
@@ -84,8 +84,6 @@ const readers = {
     const playerId = ctx.params.id as string;
     const queueName = ctx.params.queue_name as string;
     const profile = await fetchProfile(playerId, pagePool);
-    if (profile === null)
-      return;
 
     await populateProfileHistory(profile, queueName, pagePool);
 
@@ -98,8 +96,22 @@ const readers = {
 
     const matchId = ctx.params.id as string;
     const match = await fetchMatch(matchId, pagePool);
-    if (match !== null)
-      ctx.response.body = match;
+
+    ctx.response.body = match;
+  },
+  fetchMatchHistories: async (ctx : KoaRouter.IRouterContext,
+                              next : () => Promise<any>) => {
+    await next();
+
+    const matchId = ctx.params.id as string;
+    const match = await fetchMatch(matchId, pagePool);
+
+    await populateMatchHistories(match, pagePool);
+    const matchHistories = await readMatchHistories(match);
+    ctx.response.body = {
+      match: match,
+      histories: matchHistories,
+    };
   },
 };
 

@@ -22,7 +22,7 @@ export default async function populateMatchHistories(
     // TODO(pwnall): Skip populating histories for matches without 10 players?
     const playerIds = matchPlayerIds(match);
 
-    throttledAsyncMap(playerIds, pool.pageCount(), async (playerId) => {
+    await throttledAsyncMap(playerIds, pool.pageCount(), async (playerId) => {
       const playerProfile = await fetchProfile(playerId, pool);
       await populateProfileHistory(
           playerProfile, match.metadata.queueName, pool);
