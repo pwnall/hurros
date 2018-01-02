@@ -3,12 +3,19 @@ import * as koaCors from '@koa/cors';
 import * as koaJson from 'koa-json';
 import * as KoaRouter from 'koa-router';
 
+import PagePool from '../cluster/page_pool';
+import { PrioritizedPagePool, PoolPriority } from '../cluster/pool_priority';
 import ResourceManager from '../cluster/resource_manager';
 import pagers from './pagers';
 import readers from './readers';
 import status from './status';
 
+// The resource manager exposed by the /status/pool API.
 export const resourceManager = new ResourceManager();
+
+// Used to fulfill all the requests coming from the HTTP API.
+export const apiPagePool : PagePool =
+    new PrioritizedPagePool(resourceManager, PoolPriority.Interactive);
 
 const router = new KoaRouter();
 

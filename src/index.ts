@@ -78,12 +78,13 @@ async function setupResourceManager(resourceManager : ResourceManager) {
 
   // Concurrency seems to run into rate-limiting quite quickly, so we only open
   // 1 tab in all browsers we have access to.
-  await resourceManager.launchBrowser(1);
   await throttledAsyncMap(workerUrls, maxParallelConnects, async (workerUrl) => {
     console.log(`Connecting to worker WS: ${workerUrl}`);
     await resourceManager.connectBrowser(workerUrl, 1);
     console.log(`Connected  to worker WS: ${workerUrl}`);
   });
+
+  await resourceManager.launchBrowser(1);
 }
 
 // Run the main job.

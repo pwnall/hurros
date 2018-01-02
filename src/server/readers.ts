@@ -1,21 +1,15 @@
 import * as KoaRouter from 'koa-router';
 
-import PagePool from '../cluster/page_pool';
-import { PrioritizedPagePool, PoolPriority } from '../cluster/pool_priority';
 import { readProfile } from '../db/profile';
 import { readMatch } from '../db/match';
 import { readProfileMatchMetadata } from '../db/match_profile';
 import fetchMatch from '../jobs/fetch_match';
 import fetchProfile from '../jobs/fetch_profile';
 import readProfileMatches from '../jobs/read_profile_matches';
-import { resourceManager } from './app';
+import { apiPagePool } from './app';
 import populateMatchHistories from '../jobs/populate_match_histories';
 import populateProfileHistory from '../jobs/populate_profile_history';
 import readMatchHistories from '../jobs/read_match_histories';
-
-// Used to fulfill all the requests coming from the HTTP API.
-const pagePool : PagePool = new PrioritizedPagePool(resourceManager,
-                                                    PoolPriority.Interactive);
 
 const readers = {
   readProfileMatches: async (ctx : KoaRouter.IRouterContext,
@@ -80,7 +74,7 @@ const readers = {
     await next();
 
     const playerId = ctx.params.id as string;
-    const profile = await fetchProfile(playerId, pagePool);
+    const profile = await fetchProfile(playerId, apiPagePool);
     ctx.response.body = profile;
   },
   fetchProfileHistory: async (ctx : KoaRouter.IRouterContext,
@@ -89,9 +83,9 @@ const readers = {
 
     const playerId = ctx.params.id as string;
     const queueName = ctx.params.queue_name as string;
-    const profile = await fetchProfile(playerId, pagePool);
+    const profile = await fetchProfile(playerId, apiPagePool);
 
-    await populateProfileHistory(profile, queueName, pagePool);
+    await populateProfileHistory(profile, queueName, apiPagePool);
 
     const matchesMetadata = await readProfileMatchMetadata(profile.playerId);
     ctx.response.body = matchesMetadata;
@@ -101,7 +95,7 @@ const readers = {
     await next();
 
     const matchId = ctx.params.id as string;
-    const match = await fetchMatch(matchId, pagePool);
+    const match = await fetchMatch(matchId, apiPagePool);
 
     ctx.response.body = match;
   },
@@ -110,9 +104,9 @@ const readers = {
     await next();
 
     const matchId = ctx.params.id as string;
-    const match = await fetchMatch(matchId, pagePool);
+    const match = await fetchMatch(matchId, apiPagePool);
 
-    await populateMatchHistories(match, pagePool);
+    await populateMatchHistories(match, apiPagePool);
     const matchHistories = await readMatchHistories(match);
     ctx.response.body = {
       match: match,
