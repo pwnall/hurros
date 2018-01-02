@@ -24,6 +24,7 @@ const status = {
 
     ctx.response.body = {
       pageCount: resourceManager.pageCount(),
+      freePageCount: resourceManager.freePageCount(),
       queueSizes: resourceManager.queueSizes(),
       pageInfo: resourceManager.pageInfo(),
     };

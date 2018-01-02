@@ -9,6 +9,8 @@ export enum PoolPriority {
   Medium = 2,
   Low = 3,
   Background = 4,
+
+  // The ResourceManager implementation assumes Invalid is the enum's max value.
   Invalid = 5,
 };
 

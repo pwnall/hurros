@@ -3,12 +3,18 @@ import { clearTimeout, setTimeout } from 'timers';
 
 import { PoolPriority } from './pool_priority';
 
-// The state stored for each page in the pool.
+// State stored for each page in the pool.
 interface ManagedPageInfo {
   lastCheckedOutAt: number,
   lastCheckedInAt: number,
-  jobPriority: PoolPriority,
+  taskPriority: PoolPriority,
 };
+
+// Stated stored for each queued withPage() request.
+interface QueuedRequest {
+  priority: PoolPriority,
+  callback: (page : puppeteer.Page) => void;
+}
 
 // Concrete implementation of a page pool.
 export default class ResourceManager {
@@ -46,7 +52,7 @@ export default class ResourceManager {
     for (let queue of this.queues_) {
       for (let queueItem of queue) {
         try {
-          queueItem(null);
+          queueItem.callback(null);
         } catch(e) {
           console.error(`PagePool callback error: ${e}`);
         }
@@ -130,13 +136,18 @@ export default class ResourceManager {
   }
 
   // Debugging information about each managed Chrome resource.
-  pageInfo() : { [wsUrl: string]: ManagedPageInfo } {
-    const result : { [wsUrl: string]: ManagedPageInfo } = {};
+  pageInfo() : { [wsUrl: string]: { [key: string]: any } } {
+    const result : { [wsUrl: string]: { [key: string]: any } } = {};
+    const now = Date.now();
     for (let [ page, pageInfo ] of this.pageInfo_) {
       // TODO(pwnall): Try to get the URL exposed in the API.
       //     Path: Page._client -> Session._connection -> Connection.url()
       const pageWsUrl = (page as any)._client._connection.url();
-      result[pageWsUrl] = pageInfo;
+      result[pageWsUrl] = {
+        lastCheckedInAgo: (now - pageInfo.lastCheckedInAt) / 1000.0,
+        lastCheckedOutAgo: (now - pageInfo.lastCheckedOutAt) / 1000.0,
+        taskPriority: PoolPriority[pageInfo.taskPriority],
+      };
     }
     return result;
   }
@@ -150,10 +161,16 @@ export default class ResourceManager {
       const page = this.freePages_.pop();
       const pageInfo = this.pageInfo_.get(page);
       pageInfo.lastCheckedOutAt = now;
+      pageInfo.taskPriority = priority;
       return Promise.resolve(page);
     }
 
-    return new Promise((resolve) => { this.queues_[priority].push(resolve); });
+    return new Promise((resolve) => {
+      this.queues_[priority].push({
+        callback: resolve,
+        priority: priority,
+      });
+    });
   }
 
   private checkinPage(page : puppeteer.Page) : void {
@@ -167,9 +184,10 @@ export default class ResourceManager {
       if (queue.length > 0) {
         const queueItem = queue.pop();
         pageInfo.lastCheckedOutAt = now;
+        pageInfo.taskPriority = queueItem.priority;
 
         try {
-          queueItem(page);
+          queueItem.callback(page);
         } catch (e) {
           console.error(`PagePool callback error: ${e}`);
         }
@@ -199,7 +217,7 @@ export default class ResourceManager {
       this.pageInfo_.set(page, {
         lastCheckedOutAt: 0,
         lastCheckedInAt: 0,   // Will be overwritten by checkinPage.
-        jobPriority: PoolPriority.Invalid,
+        taskPriority: PoolPriority.Invalid,
       });
       this.checkinPage(page);
     }
@@ -219,5 +237,5 @@ export default class ResourceManager {
   // Chains of promises, where each promise is resolved when a page is freed.
   //
   // The manager has one chain per PoolPriority level.
-  private queues_ : Array<(page : puppeteer.Page) => void>[];
+  private queues_ : QueuedRequest[][];
 }
