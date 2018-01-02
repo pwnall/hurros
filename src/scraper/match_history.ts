@@ -44,11 +44,11 @@ async function matchHistoryQueueName(page : puppeteer.Page) : Promise<string> {
 //
 // Assumes the browser is navigated to a match history page.
 export async function selectMatchHistoryQueue(
-    page : puppeteer.Page, queueName : string) : Promise<void> {
+    page : puppeteer.Page, queueName : string) : Promise<boolean> {
   // Avoid doing the dropdown dance if the desired queue is already selected.
   const currentQueueName = await matchHistoryQueueName(page);
   if (currentQueueName.indexOf(queueName) !== -1)
-     return;
+     return true;
 
   // Hash the current match data contents.
   const currentHash = await elementHash(page, 'table.rgMasterTable');
@@ -88,11 +88,22 @@ export async function selectMatchHistoryQueue(
   if (!clicked)
     throw new Error(`Option ${queueName} not found.`);
 
-  // TODO(pwnall): Content hashing can't detect the transition between two
-  //               queues with no history.
-  await catchWaitingTimeout(async () => {
-    await waitForElementHashChange(page, 'table.rgMasterTable', currentHash);
+  // The new hash is irrelevant, but a null value here means that a timeout has
+  // been suppressed, so the selection failed.
+  const newHash = await catchWaitingTimeout(async () => {
+    return await waitForElementHashChange(
+        page, 'table.rgMasterTable', currentHash);
   });
+  if (newHash === null) {
+    // TODO(pwnall): Content hashing can't detect the transition between two
+    //               queues with no history. That would be a false error here.
+
+    // This could be a rate-limiting error.
+    await throwUnlessHtmlDocument(page);
+    return false;
+  }
+
+  return true;
 }
 
 // Clicks on the Next button on the match history page.

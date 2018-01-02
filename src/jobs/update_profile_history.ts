@@ -12,9 +12,10 @@ import { retryWhileNonHtmlDocumentErrors } from '../scraper/rate_limit_helper';
 // Job logic, without exception handling.
 async function updateProfileMatchHistory(
     profile : PlayerProfile, queueName : string, page : puppeteer.Page)
-    : Promise<void> {
+    : Promise<boolean> {
   await goToMatchHistory(page, profile.playerId);
-  await selectMatchHistoryQueue(page, queueName);
+  if (!await selectMatchHistoryQueue(page, queueName))
+    return false;
 
   let lastTopEntryId = '';
   let lastBottomEntryId = '';
@@ -40,6 +41,7 @@ async function updateProfileMatchHistory(
     if (!foundNext)
       break;
   }
+  return true;
 }
 
 // Return true for success, false if the job was abandoned due to an exception.
@@ -47,9 +49,9 @@ export default async function updateProfileHistory(
     profile : PlayerProfile, queueName : string, pool : PagePool)
     : Promise<boolean> {
   try {
-    await pool.withPage(async (page) => {
-      await retryWhileNonHtmlDocumentErrors(async () => {
-        await updateProfileMatchHistory(profile, queueName, page);
+    return await pool.withPage(async (page) => {
+      return await retryWhileNonHtmlDocumentErrors(async () => {
+        return await updateProfileMatchHistory(profile, queueName, page);
       });
     });
   } catch (e) {
@@ -57,6 +59,4 @@ export default async function updateProfileHistory(
     console.error(`Failed to update history for ${profileId}: ${e}`);
     return false;
   }
-
-  return true;
 }

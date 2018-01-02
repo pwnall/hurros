@@ -28,6 +28,8 @@ export async function catchNavigationTimeout<T>(f : () => Promise<T>)
 // Catch waiting timeout errors.
 //
 // The errors are probably due to the fact that ads are still loading.
+//
+// Returns null if a timeout error is caught and suppressed.
 export async function catchWaitingTimeout<T>(f : () => Promise<T>)
     : Promise<T | null> {
   try {
