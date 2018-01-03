@@ -150,8 +150,14 @@ export default class ResourceManager {
     const result : Array<{ pageWsUrl: string, [key: string]: any }> = [];
     const now = Date.now();
     for (let [ page, pageInfo ] of this.pageInfo_) {
-      const lastErrorLine =
-          pageInfo.lastError && pageInfo.lastError.stack.split('\n', 2)[0];
+      let lastErrorMessage : string | null = null;
+      let lastErrorLine : string | null = null;
+      if (pageInfo.lastError !== null) {
+        const splitTrace = pageInfo.lastError.stack.split('\n', 3);
+        lastErrorMessage = splitTrace[0];
+        lastErrorLine = splitTrace[1] && splitTrace[1].trim();
+      }
+
       result.push({
         // TODO(pwnall): Try to get the URL exposed in the API.
         //     Path: Page._client -> Session._connection -> Connection.url()
@@ -160,7 +166,7 @@ export default class ResourceManager {
         lastCheckedInAgo: (now - pageInfo.lastCheckedInAt) / 1000.0,
         lastCheckedOutAgo: (now - pageInfo.lastCheckedOutAt) / 1000.0,
         lastDuration: pageInfo.lastTaskDuration / 1000.0,
-        lastErrorMessage: pageInfo.lastError && pageInfo.lastError.message,
+        lastErrorMessage: lastErrorMessage,
         lastErrorLine: lastErrorLine,
         taskPriority: PoolPriority[pageInfo.taskPriority],
         tasksCompleted: pageInfo.tasksCompleted,
