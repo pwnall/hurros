@@ -10,6 +10,7 @@ interface ManagedPageInfo {
   lastTaskDuration: number,
   lastError: Error | null,
   taskPriority: PoolPriority,
+  tasksCompleted: number,
 };
 
 // Stated stored for each queued withPage() request.
@@ -145,21 +146,27 @@ export default class ResourceManager {
   }
 
   // Debugging information about each managed Chrome resource.
-  pageInfo() : { [wsUrl: string]: { [key: string]: any } } {
-    const result : { [wsUrl: string]: { [key: string]: any } } = {};
+  pageInfo() : Array<{ [key: string]: any }> {
+    const result : Array<{ pageWsUrl: string, [key: string]: any }> = [];
     const now = Date.now();
     for (let [ page, pageInfo ] of this.pageInfo_) {
-      // TODO(pwnall): Try to get the URL exposed in the API.
-      //     Path: Page._client -> Session._connection -> Connection.url()
-      const pageWsUrl = (page as any)._client._connection.url();
-      result[pageWsUrl] = {
+      const lastErrorLine =
+          pageInfo.lastError && pageInfo.lastError.stack.split('\n', 2)[0];
+      result.push({
+        // TODO(pwnall): Try to get the URL exposed in the API.
+        //     Path: Page._client -> Session._connection -> Connection.url()
+        pageWsUrl: (page as any)._client._connection.url(),
+
         lastCheckedInAgo: (now - pageInfo.lastCheckedInAt) / 1000.0,
         lastCheckedOutAgo: (now - pageInfo.lastCheckedOutAt) / 1000.0,
         lastDuration: pageInfo.lastTaskDuration / 1000.0,
         lastErrorMessage: pageInfo.lastError && pageInfo.lastError.message,
+        lastErrorLine: lastErrorLine,
         taskPriority: PoolPriority[pageInfo.taskPriority],
-      };
+        tasksCompleted: pageInfo.tasksCompleted,
+      });
     }
+    result.sort((a, b) => a.pageWsUrl.localeCompare(b.pageWsUrl));
     return result;
   }
 
@@ -188,6 +195,7 @@ export default class ResourceManager {
     const now = Date.now();
     const pageInfo = this.pageInfo_.get(page);
     pageInfo.lastCheckedInAt = now;
+    pageInfo.tasksCompleted += 1;
 
     for (let i = 0; i < this.queues_.length; ++i) {
       const queue = this.queues_[i];
@@ -227,10 +235,11 @@ export default class ResourceManager {
     for (let page of pages) {
       this.pageInfo_.set(page, {
         lastCheckedOutAt: 0,
-        lastCheckedInAt: 0,   // Will be overwritten by checkinPage.
+        lastCheckedInAt: 0,  // Will be overwritten by checkinPage.
         lastTaskDuration: 0,
         lastError: null,
         taskPriority: PoolPriority.Invalid,
+        tasksCompleted: -1,  // Will be incremented by checkinPage.
       });
       this.checkinPage(page);
     }
