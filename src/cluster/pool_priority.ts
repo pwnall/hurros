@@ -22,7 +22,8 @@ export class PrioritizedPagePool implements PagePool {
   }
 
   withPage<T>(f : (page: puppeteer.Page) => Promise<T>) : Promise<T> {
-    return this.resourceManager_.withPage(this.priority_, f);
+    // TODO(pwnall):  Propagate URL-based task reservation.
+    return this.resourceManager_.withPage(this.priority_, '', f);
   }
 
   pageCount() : number {

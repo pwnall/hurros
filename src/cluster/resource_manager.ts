@@ -9,13 +9,16 @@ interface ManagedPageInfo {
   lastCheckedInAt: number,
   lastTaskDuration: number,
   lastError: Error | null,
+  lastErrorUrl: string | null,
   taskPriority: PoolPriority,
+  taskUrl: string | null,
   tasksCompleted: number,
 };
 
 // Stated stored for each queued withPage() request.
 interface QueuedRequest {
   priority: PoolPriority,
+  url: string,
   callback: (page : puppeteer.Page) => void;
 }
 
@@ -37,7 +40,7 @@ export default class ResourceManager {
     if (this.shuttingDown_)
       throw new Error("PagePool shut down");
 
-    const page = await this.checkoutPage(priority);
+    const page = await this.checkoutPage(priority, url);
     const pageInfo = this.pageInfo_.get(page);
     const startedAt = Date.now();
     try {
@@ -45,6 +48,7 @@ export default class ResourceManager {
       return returnValue;
     } catch (e) {
       pageInfo.lastError = e;
+      pageInfo.lastErrorUrl = pageInfo.taskUrl;
       throw e;
     } finally {
       const endedAt = Date.now();
@@ -173,7 +177,8 @@ export default class ResourceManager {
     return result;
   }
 
-  private checkoutPage(priority : PoolPriority) : Promise<puppeteer.Page> {
+  private checkoutPage(priority : PoolPriority, url : string)
+      : Promise<puppeteer.Page> {
     if (this.shuttingDown_)
       return Promise.resolve(null);
 
@@ -183,6 +188,7 @@ export default class ResourceManager {
       const pageInfo = this.pageInfo_.get(page);
       pageInfo.lastCheckedOutAt = now;
       pageInfo.taskPriority = priority;
+      pageInfo.taskUrl = url;
       return Promise.resolve(page);
     }
 
@@ -190,6 +196,7 @@ export default class ResourceManager {
       this.queues_[priority].push({
         callback: resolve,
         priority: priority,
+        url: url,
       });
     });
   }
@@ -198,6 +205,8 @@ export default class ResourceManager {
     const now = Date.now();
     const pageInfo = this.pageInfo_.get(page);
     pageInfo.lastCheckedInAt = now;
+    pageInfo.taskPriority = PoolPriority.Invalid;
+    pageInfo.taskUrl = null;
     pageInfo.tasksCompleted += 1;
 
     for (let i = 0; i < this.queues_.length; ++i) {
@@ -241,7 +250,9 @@ export default class ResourceManager {
         lastCheckedInAt: 0,  // Will be overwritten by checkinPage.
         lastTaskDuration: 0,
         lastError: null,
+        lastErrorUrl: null,
         taskPriority: PoolPriority.Invalid,
+        taskUrl: null,
         tasksCompleted: -1,  // Will be incremented by checkinPage.
       });
       this.checkinPage(page);
