@@ -31,11 +31,8 @@ export default class ResourceManager {
     this.shuttingDown_ = false;
   }
 
-  // Checks out a Chrome tab from the pool for the given async function.
-  //
-  // When the function returns or throws, the tab is checked back into the pool.
-  // The function's return / throw value is passed to the caller.
-  async withPage<T>(priority : PoolPriority,
+  // Implements PagePool#withPage().
+  async withPage<T>(priority : PoolPriority, url : string,
                     f : (page: puppeteer.Page) => Promise<T>) : Promise<T> {
     if (this.shuttingDown_)
       throw new Error("PagePool shut down");
@@ -121,7 +118,7 @@ export default class ResourceManager {
     });
   }
 
-  // Number of pages available in the pool.
+  // Implements PagePool#pageCount().
   pageCount() : number {
     return this.pageInfo_.size;
   }

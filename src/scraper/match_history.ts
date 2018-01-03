@@ -30,8 +30,14 @@ export async function goToMatchHistory(page : puppeteer.Page,
 
 // Extracts the selected queue name from the match history page's dropdown.
 async function matchHistoryQueueName(page : puppeteer.Page) : Promise<string> {
-   await page.waitForSelector(
-      'div[id*="DropDownGameType"] li[class*="elected"]', { timeout: 10000 });
+  const foundSelector = catchWaitingTimeout(async () => {
+    await page.waitForSelector(
+        'div[id*="DropDownGameType"] li[class*="elected"]', { timeout: 10000 });
+    return true;
+  });
+
+  if (foundSelector === null)
+    await throwUnlessHtmlDocument(page);
 
   return await page.evaluate(() => {
     const element = document.querySelector(
@@ -52,6 +58,8 @@ export async function selectMatchHistoryQueue(
 
   // Hash the current match data contents.
   const currentHash = await elementHash(page, 'table.rgMasterTable');
+  if (currentHash === '')
+    throw new Error("Datatable missing from match history page");
 
   await page.waitForSelector(
       'div[id*="DropDownGameType"][class*="DropDown"]',

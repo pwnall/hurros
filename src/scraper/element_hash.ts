@@ -7,11 +7,12 @@ import * as puppeteer from 'puppeteer';
 // the scraping drones are remote) is undesirable and unnecessary.
 //
 // Returns the hash of the first DOM element that matches the CSS selector. If
-// no element matches, an exception will be thrown.
+// no element matches, the empty string is returned.
 export async function elementHash(page : puppeteer.Page, cssSelector : string)
     : Promise<string> {
   return await page.evaluate(async (selector : string) => {
     const element = document.querySelector(selector);
+    if (!element) return '';
     const buffer = new TextEncoder('utf-8').encode(element.textContent);
     const hashArray = new Uint32Array(
         await crypto.subtle.digest('sha-256', buffer));
@@ -41,9 +42,7 @@ export async function waitForElementHashChange(
       await new Promise((resolve) => window.requestAnimationFrame(resolve));
 
       const element = document.querySelector(selector);
-      if (!element)
-        return '';
-
+      if (!element) return '';
       const buffer = new TextEncoder('utf-8').encode(element.textContent);
       const hashArray = new Uint32Array(
           await crypto.subtle.digest('sha-256', buffer));

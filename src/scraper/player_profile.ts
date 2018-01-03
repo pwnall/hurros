@@ -114,13 +114,18 @@ export async function extractPlayerProfile(page : puppeteer.Page)
   data.playerId = extractPlayerIdFromUrl(page.url());
 
   {
-    const heading = await page.$('h1');
-    const headingText = await page.evaluate((h1) => h1.textContent, heading);
-    heading.dispose();
-    const match = /(.*)\s+Profile:(.*)/.exec(headingText);
-    if (match) {
-      data.playerRegion = match[1];
-      data.playerName = match[2];
+    const headingText = await page.evaluate(() => {
+      const element = document.querySelector('h1');
+      return element && element.textContent;
+    });
+    if (headingText) {
+      const match = /(.*)\s+Profile:(.*)/.exec(headingText);
+      if (match) {
+        data.playerRegion = match[1];
+        data.playerName = match[2];
+      }
+    } else {
+      await throwUnlessHtmlDocument(page);
     }
   }
 
