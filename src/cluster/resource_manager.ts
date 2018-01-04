@@ -232,13 +232,15 @@ export default class ResourceManager {
         //     Path: Page._client -> Session._connection -> Connection.url()
         pageWsUrl: (page as any)._client._connection.url(),
 
+        tasksCompleted: pageInfo.tasksCompleted,
         lastCheckedInAgo: (now - pageInfo.lastCheckedInAt) / 1000.0,
         lastCheckedOutAgo: (now - pageInfo.lastCheckedOutAt) / 1000.0,
         lastDuration: pageInfo.lastTaskDuration / 1000.0,
         lastErrorMessage: lastErrorMessage,
         lastErrorLine: lastErrorLine,
+        lastErrorUrl: pageInfo.lastErrorUrl,
         taskPriority: PoolPriority[pageInfo.taskPriority],
-        tasksCompleted: pageInfo.tasksCompleted,
+        taskUrl: pageInfo.taskUrl,
         taskRateLimitedErrors: pageInfo.backoffs.rateLimited.count,
         taskRateLimitedDelay: pageInfo.backoffs.rateLimited.nextDelay / 1000.0,
         taskTemporaryErrors: pageInfo.backoffs.temporary.count,
