@@ -294,6 +294,7 @@ export default class ResourceManager {
         const queueItem = queue.pop();
         pageInfo.lastCheckedOutAt = now;
         pageInfo.taskPriority = queueItem.priority;
+        pageInfo.taskUrl = queueItem.url;
 
         try {
           queueItem.callback(page);
