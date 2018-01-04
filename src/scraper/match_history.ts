@@ -95,8 +95,11 @@ export async function selectMatchHistoryQueue(
   // The new hash is irrelevant, but a null value here means that a timeout has
   // been suppressed, so the selection failed.
   const newHash = await catchTemporaryError(async () => {
+    // Wait up to 5 minutes for the page to update, because hotslogs loads the
+    // entire history in one go, and that can take a while for players with a
+    // lot of matches.
     return await waitForElementHashChange(
-        page, 'table.rgMasterTable', currentHash);
+        page, 'table.rgMasterTable', currentHash, 5 * 60 * 1000);
   });
   if (newHash === null) {
     // TODO(pwnall): Content hashing can't detect the transition between two
