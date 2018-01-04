@@ -239,6 +239,10 @@ export default class ResourceManager {
         lastErrorLine: lastErrorLine,
         taskPriority: PoolPriority[pageInfo.taskPriority],
         tasksCompleted: pageInfo.tasksCompleted,
+        taskRateLimitedErrors: pageInfo.backoffs.rateLimited.count,
+        taskRateLimitedDelay: pageInfo.backoffs.rateLimited.nextDelay / 1000.0,
+        taskTemporaryErrors: pageInfo.backoffs.temporary.count,
+        taskTemporaryDelay: pageInfo.backoffs.temporary.nextDelay / 1000.0,
       });
     }
     result.sort((a, b) => a.pageWsUrl.localeCompare(b.pageWsUrl));
