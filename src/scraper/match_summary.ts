@@ -5,22 +5,29 @@ import {
   parseFormattedNumber, parseHoursDuration, parsePercentage,
 } from './string_parsing';
 import { extractTableText } from './table_parsing';
-import {
-  catchWaitingTimeout, retryWhileNavigationTimeout,
-} from './timeout_helper';
 import { throwUnlessHtmlDocument } from './rate_limit_helper';
+
+import { catchTemporaryError } from '../cluster/errors';
 
 // Updated every time the parser changes in a released version.
 export const matchParserVersion = "2";
 
-// Navigates to a match's summary page.
-export async function goToMatchSummary(page : puppeteer.Page,
-                                       replayId : string) {
-  const pageUrl =
-      'https://www.hotslogs.com/Player/MatchSummaryContainer?' +
+// The URL of a match's summary page.
+export function matchSummaryUrl(replayId : string) : string {
+  return 'https://www.hotslogs.com/Player/MatchSummaryContainer?' +
       `ReplayID=${replayId}`;
+}
 
-  await retryWhileNavigationTimeout(async () => await page.goto(pageUrl));
+// Throws if the browser is not navigated to a match summary page.
+export async function ensureOnMatchSummaryPage(
+    page : puppeteer.Page, replayId : string) : Promise<void> {
+
+  // Hotslogs redirects to the home page for invalid match IDs.
+  const currentUrl = page.url();
+  if (!currentUrl.includes(replayId))
+    throw new Error(`No match summary page for ${replayId}; invalid ID?`);
+
+  await throwUnlessHtmlDocument(page);
 }
 
 // Adds player IDs from playerIdentities to matchData.
@@ -51,6 +58,7 @@ function mergePlayerIds(
   }
 }
 
+// The result of scraping a hotslogs match summary page.
 export interface PlayerMatchSummary {
   // Information common to the two summary tables.
   playerName? : string,
@@ -110,7 +118,7 @@ export async function extractMatchStats1(page : puppeteer.Page)
   // If the table exists, spend some time waiting for its content to load. The
   // timeout should be much more aggressive (like 500ms), but that would cause
   // trouble with remote scrapers.
-  await catchWaitingTimeout(async () => {
+  await catchTemporaryError(async () => {
     await page.waitForSelector(
         '[class*="CharacterScoreResults"] table.rgMasterTable td',
         { visible: true, timeout: 10000 });
@@ -259,7 +267,7 @@ interface PlayerMatchSummaryExtra {
 // The data should be merged with the data returned by extractMatchStats1()
 // using mergeMatchStats().
 export async function extractMatchStats2(page : puppeteer.Page) {
-  await catchWaitingTimeout(async () => {
+  await catchTemporaryError(async () => {
     await page.waitForSelector(
         '[id*="MatchDetails"] table.rgMasterTable td',
         { visible: true, timeout: 10000 });
@@ -412,11 +420,6 @@ export async function extractMatchStats(page : puppeteer.Page) :
   const extraData = await extractMatchStats2(page);
   const matchData = await extractMatchStats1(page);
   mergeMatchStats(matchData, extraData);
-
-  if (matchData.length === 0) {
-    // Empty matchups are likely to represent rate-limiting errors.
-    await throwUnlessHtmlDocument(page);
-  }
 
   return matchData;
 }

@@ -1,6 +1,4 @@
-import * as puppeteer from 'puppeteer';
-
-import PagePool from './page_pool';
+import PagePool, { PageFunction } from './page_pool';
 import ResourceManager from './resource_manager';
 
 export enum PoolPriority {
@@ -21,15 +19,16 @@ export class PrioritizedPagePool implements PagePool {
     this.priority_ = priority;
   }
 
-  withPage<T>(f : (page: puppeteer.Page) => Promise<T>) : Promise<T> {
-    // TODO(pwnall):  Propagate URL-based task reservation.
-    return this.resourceManager_.withPage(this.priority_, '', f);
+  withPage<T>(url : string, f : PageFunction<T>) : Promise<T> {
+    return this.resourceManager_.withPage(this.priority_, url, f);
   }
 
   pageCount() : number {
     return this.resourceManager_.pageCount();
   }
 
+  // The priority of all withPage() requests proxied to the ResourceManager.
   private priority_ : PoolPriority;
+  // The ResourceManager receiving all the requests.
   private resourceManager_ : ResourceManager;
 }

@@ -4,40 +4,35 @@ import { elementHash, waitForElementHashChange } from './element_hash';
 import { extractPlayerIdFromUrl, } from './player_profile';
 import { parseHoursDuration, parseTimestamp, } from './string_parsing';
 import { extractTableText } from './table_parsing';
-import {
-  catchWaitingTimeout, retryWhileNavigationTimeout,
-} from './timeout_helper';
 import { throwUnlessHtmlDocument } from './rate_limit_helper';
+
+import { catchTemporaryError } from '../cluster/errors';
 
 // Updated every time the parser changes in a released version.
 export const historyParserVersion = "3";
 
-// Navigates to a player's match history page.
-export async function goToMatchHistory(page : puppeteer.Page,
-                                       playerId : string) : Promise<void> {
-  const pageUrl =
-      `https://www.hotslogs.com/Player/MatchHistory?PlayerID=${playerId}`;
+// The URL of a player's match history page.
+export function matchHistoryUrl(playerId : string) : string {
+  return `https://www.hotslogs.com/Player/MatchHistory?PlayerID=${playerId}`;
+}
 
-  await retryWhileNavigationTimeout(async () => await page.goto(pageUrl));
-
+// Throws if the browser is not navigated to a player match history page.
+export async function ensureOnMatchHistoryPage(
+    page : puppeteer.Page, playerId : string) : Promise<void> {
   // Hotslogs redirects to the home page for invalid player IDs.
   // Formerly valid player IDs can become invalid if hotslogs decides to block
   // profiles. Currently, silenced players have their profiles blocked.
   const currentUrl = page.url();
-  if (currentUrl.indexOf(playerId) === -1)
+  if (extractPlayerIdFromUrl(currentUrl) !== playerId)
     throw new Error(`No match history page for ${playerId}; profile blocked?`);
+
+  await throwUnlessHtmlDocument(page);
 }
 
 // Extracts the selected queue name from the match history page's dropdown.
 async function matchHistoryQueueName(page : puppeteer.Page) : Promise<string> {
-  const foundSelector = catchWaitingTimeout(async () => {
-    await page.waitForSelector(
-        'div[id*="DropDownGameType"] li[class*="elected"]', { timeout: 10000 });
-    return true;
-  });
-
-  if (foundSelector === null)
-    await throwUnlessHtmlDocument(page);
+  await page.waitForSelector(
+      'div[id*="DropDownGameType"] li[class*="elected"]', { timeout: 10000 });
 
   return await page.evaluate(() => {
     const element = document.querySelector(
@@ -53,7 +48,7 @@ export async function selectMatchHistoryQueue(
     page : puppeteer.Page, queueName : string) : Promise<boolean> {
   // Avoid doing the dropdown dance if the desired queue is already selected.
   const currentQueueName = await matchHistoryQueueName(page);
-  if (currentQueueName.indexOf(queueName) !== -1)
+  if (currentQueueName.includes(queueName))
      return true;
 
   // Hash the current match data contents.
@@ -75,7 +70,7 @@ export async function selectMatchHistoryQueue(
   // click coordinates will be wrong.
   await page.waitFor(1000);
 
-  await catchWaitingTimeout(async () => {
+  await catchTemporaryError(async () => {
     await page.waitForSelector(
         'div[id*="DropDownGameType"] li', { timeout: 10000 });
   });
@@ -86,9 +81,10 @@ export async function selectMatchHistoryQueue(
     const option = queueNameOptions[i];
     const optionText : string =
         await page.evaluate((li : HTMLLIElement) => li.textContent, option);
-    if (optionText.indexOf(queueName) !== -1) {
+    if (optionText.includes(queueName)) {
       await option.click();
       clicked = true;
+      // Not breaking here so all options can be disposed.
     }
     await option.dispose();
   }
@@ -98,7 +94,7 @@ export async function selectMatchHistoryQueue(
 
   // The new hash is irrelevant, but a null value here means that a timeout has
   // been suppressed, so the selection failed.
-  const newHash = await catchWaitingTimeout(async () => {
+  const newHash = await catchTemporaryError(async () => {
     return await waitForElementHashChange(
         page, 'table.rgMasterTable', currentHash);
   });
@@ -106,7 +102,9 @@ export async function selectMatchHistoryQueue(
     // TODO(pwnall): Content hashing can't detect the transition between two
     //               queues with no history. That would be a false error here.
 
-    // This could be a rate-limiting error.
+    // TODO(pwnall): Figure out a proper way to detect rate-limiting here. The
+    //               main page is not replaced, so the call below will not
+    //               trigger.
     await throwUnlessHtmlDocument(page);
     return false;
   }
@@ -144,6 +142,7 @@ export async function nextMatchHistory(page : puppeteer.Page)
   return true;
 }
 
+// The result of scraping an entry on a hotslogs player match history page.
 export interface MatchHistoryEntry {
   playerId? : string,
   replayId? : string,

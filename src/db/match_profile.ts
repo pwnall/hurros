@@ -127,7 +127,7 @@ export async function readProfileMatchMetadata(
     return updatedRecords;
 
   return updatedRecords.filter(
-      (record) => record.data.queueName.indexOf(queueName) !== -1);
+      (record) => record.data.queueName.includes(queueName));
 }
 
 // Fetch metadata for all the matches associated with a profile.

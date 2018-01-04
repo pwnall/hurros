@@ -1,7 +1,18 @@
-import * as puppeteer from 'puppeteer';
 import { clearTimeout, setTimeout } from 'timers';
 
+import * as puppeteer from 'puppeteer';
+
+import { isRateLimitedError, isTemporaryError } from './errors';
 import { PoolPriority } from './pool_priority';
+import { PageFunction } from './page_pool';
+
+// State stored for exponentially backing off in the face of errors.
+interface BackoffInfo {
+  count: number,      // Number of consecutive backoffs.
+  nextDelay: number,  // Current delay, in milliseconds.
+  minDelay: number,   // Minimum delay, in milliseconds.
+  maxDelay: number,   // Maximum delay, in milliseconds.
+};
 
 // State stored for each page in the pool.
 interface ManagedPageInfo {
@@ -13,6 +24,10 @@ interface ManagedPageInfo {
   taskPriority: PoolPriority,
   taskUrl: string | null,
   tasksCompleted: number,
+  backoffs: {
+    temporary: BackoffInfo,
+    rateLimited: BackoffInfo,
+  },
 };
 
 // Stated stored for each queued withPage() request.
@@ -20,6 +35,16 @@ interface QueuedRequest {
   priority: PoolPriority,
   url: string,
   callback: (page : puppeteer.Page) => void;
+}
+
+function delay(milliseconds : number) : Promise<void> {
+  return new Promise((resolve) => { setTimeout(resolve, milliseconds); } );
+}
+
+async function backOff(state : BackoffInfo) : Promise<void> {
+  state.count += 1;
+  await delay(state.nextDelay);
+  state.nextDelay = Math.min(state.maxDelay, state.nextDelay * 2);
 }
 
 // Concrete implementation of a page pool.
@@ -36,20 +61,49 @@ export default class ResourceManager {
 
   // Implements PagePool#withPage().
   async withPage<T>(priority : PoolPriority, url : string,
-                    f : (page: puppeteer.Page) => Promise<T>) : Promise<T> {
+                    f : PageFunction<T>) : Promise<T> {
     if (this.shuttingDown_)
-      throw new Error("PagePool shut down");
+      throw new Error("ResourceManager shut down");
 
     const page = await this.checkoutPage(priority, url);
     const pageInfo = this.pageInfo_.get(page);
+    pageInfo.backoffs.rateLimited.count = 0;
+    pageInfo.backoffs.rateLimited.nextDelay =
+        pageInfo.backoffs.rateLimited.minDelay;
+    pageInfo.backoffs.temporary.count = 0;
+    pageInfo.backoffs.temporary.nextDelay =
+        pageInfo.backoffs.temporary.minDelay;
+
     const startedAt = Date.now();
     try {
-      const returnValue : T = await f(page);
-      return returnValue;
-    } catch (e) {
-      pageInfo.lastError = e;
-      pageInfo.lastErrorUrl = pageInfo.taskUrl;
-      throw e;
+      while (true) {
+        try {
+          const response = await page.goto(url);
+          return await f(page, response);
+        } catch (e) {
+          pageInfo.lastError = e;
+          pageInfo.lastErrorUrl = pageInfo.taskUrl;
+
+          // For now, we back off and retry indefinitely on special error types.
+          //
+          // TODO(pwnall): After a limit is exceeded, bail and try checking
+          // out a different Chrome tab from the pool. Also consider closing
+          // the erroring tab and replacing it with a different tab from the
+          // same browser.
+
+          if (isTemporaryError(e)) {
+            await backOff(pageInfo.backoffs.temporary);
+            continue;
+          }
+
+          if (isRateLimitedError(e)) {
+            await backOff(pageInfo.backoffs.rateLimited);
+            continue;
+          }
+
+          throw e;
+        }
+      }
     } finally {
       const endedAt = Date.now();
       pageInfo.lastTaskDuration = endedAt - startedAt;
@@ -57,7 +111,14 @@ export default class ResourceManager {
     }
   }
 
+  // Shuts down all resources connected to this pool.
+  //
+  // All pending tasks are de-scheduled. All launched browsers are terminated.
+  // All connections to remote browsers are closed.
   async shutdown() : Promise<void> {
+    if (this.shuttingDown_)
+      throw new Error("ResourceManager already shut down");
+
     this.shuttingDown_ = true;
 
     for (let queue of this.queues_) {
@@ -86,6 +147,9 @@ export default class ResourceManager {
 
   // Starts a local browser and adds its pages to the pool.
   async launchBrowser(maxPages : number = 1) : Promise<void> {
+    if (this.shuttingDown_)
+      throw new Error("ResourceManager shut down");
+
     const browser = await puppeteer.launch({
       headless: false,
       args: ['--disable-notifications'],
@@ -96,6 +160,9 @@ export default class ResourceManager {
 
   // Connects to a remote browser and adds it to the pool.
   connectBrowser(wsUrl : string, maxPages : number = 1) : Promise<void> {
+    if (this.shuttingDown_)
+      throw new Error("ResourceManager shut down");
+
     return new Promise((resolve, reject) => {
       const timeout = 30 * 1000;  // 30 seconds
       let connected = false;
@@ -109,9 +176,7 @@ export default class ResourceManager {
         reject(new Error(`Timed out while connecting to ${wsUrl}`));
       }, timeout);
 
-      puppeteer.connect({
-        browserWSEndpoint: wsUrl,
-      }).then((browser) => {
+      puppeteer.connect({ browserWSEndpoint: wsUrl }).then((browser) => {
         connected = true;
         if (timedOut)
           return;
@@ -148,6 +213,9 @@ export default class ResourceManager {
 
   // Debugging information about each managed Chrome resource.
   pageInfo() : Array<{ [key: string]: any }> {
+    if (this.shuttingDown_)
+      throw new Error("PagePool shut down");
+
     const result : Array<{ pageWsUrl: string, [key: string]: any }> = [];
     const now = Date.now();
     for (let [ page, pageInfo ] of this.pageInfo_) {
@@ -177,6 +245,9 @@ export default class ResourceManager {
     return result;
   }
 
+  // Withdraws a Chrome tab from the pool of available resources.
+  //
+  // The caller must use checkinPage() to return the tab to the pool.
   private checkoutPage(priority : PoolPriority, url : string)
       : Promise<puppeteer.Page> {
     if (this.shuttingDown_)
@@ -201,6 +272,7 @@ export default class ResourceManager {
     });
   }
 
+  // Returns a Chrome tab to the pool of available resources.
   private checkinPage(page : puppeteer.Page) : void {
     const now = Date.now();
     const pageInfo = this.pageInfo_.get(page);
@@ -230,7 +302,7 @@ export default class ResourceManager {
     this.freePages_.push(page);
   }
 
-  // Adds a browser to this pool.
+  // Adds a Chrome browser instance's tabs to the pool of available resources.
   private async addBrowser(browser : puppeteer.Browser, maxPages : number)
       : Promise<void> {
     const pages : Array<puppeteer.Page> = await browser.pages();
@@ -252,8 +324,22 @@ export default class ResourceManager {
         lastError: null,
         lastErrorUrl: null,
         taskPriority: PoolPriority.Invalid,
-        taskUrl: null,
+        taskUrl: null,  // Will be overwritten by checkoutPage.
         tasksCompleted: -1,  // Will be incremented by checkinPage.
+        backoffs: {
+          temporary: {
+            count: 0,  // Will be overwritten by checkoutPage.
+            nextDelay: 0,  // Will be overwritten by checkoutPage.
+            minDelay: 30 * 1000,  //  30 seconds
+            maxDelay: 60 * 60 * 1000,  // 1 hour
+          },
+          rateLimited: {
+            count: 0,  // Will be overwritten by checkoutPage.
+            nextDelay: 0,  // Will be overwritten by checkoutPage.
+            minDelay: 10 * 60 * 1000,  // 10 minutes
+            maxDelay: 5 * 60 * 1000,  // 5 minutes
+          },
+        },
       });
       this.checkinPage(page);
     }

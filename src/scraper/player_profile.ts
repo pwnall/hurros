@@ -5,38 +5,29 @@ import {
 } from './string_parsing';
 import { extractTableText } from './table_parsing';
 import { throwUnlessHtmlDocument } from './rate_limit_helper';
-import { retryWhileNavigationTimeout } from './timeout_helper';
 
 // Updated every time the parser changes in a released version.
 export const profileParserVersion = "3";
 
-// Navigates to a player's profile page.
-export async function goToProfileById(page : puppeteer.Page,
-                                      playerId : string) : Promise<void> {
-  const pageUrl =
-    `https://www.hotslogs.com/Player/Profile?PlayerID=${playerId}`;
+// The URL of a player's profile page.
+export function profileUrl(playerId : string) : string {
+  return `https://www.hotslogs.com/Player/Profile?PlayerID=${playerId}`;
+}
 
-  await retryWhileNavigationTimeout(async () => await page.goto(pageUrl));
-
+// Throws if the browser is not navigated to a player profile page.
+export async function ensureOnProfilePage(page : puppeteer.Page,
+                                          playerId : string) : Promise<void> {
   // Hotslogs redirects to the home page for invalid player IDs.
   // Formerly valid player IDs can become invalid if hotslogs decides to block
   // profiles. Currently, silenced players have their profiles blocked.
   const currentUrl = page.url();
-  if (currentUrl.indexOf(playerId) === -1)
+  if (extractPlayerIdFromUrl(currentUrl) !== playerId)
     throw new Error(`No profile page for ${playerId}; profile blocked?`);
+
+  await throwUnlessHtmlDocument(page);
 }
 
-// (unfinished) locates a player based on name.
-//
-// This either redirects to a player profile, if the name is unique, or goes to a
-// search results page, if the name is ambiguous.
-//
-// TODO: distinguish between the two, parse the search results.
-export async function goToProfileByName(page : puppeteer.Page,
-                                        playerName : string) : Promise<void> {
-  await page.goto(`https://hotslogs.com/PlayerSearch?Name=${playerName}`);
-}
-
+// The result of scraping a hotslogs player profile page.
 export interface PlayerProfile {
   playerRegion? : string, playerName? : string, playerId? : string,
   mmr: {
@@ -63,8 +54,11 @@ export interface PlayerIdentity {
 
 // Extracts player profile links from an element's content.
 //
-// The caller owns the element, so it is responsible for keeping the element alive
-// while the function runs, and for disposing of the element later on.
+// Assumes that the browser is pointed at a player profile page. Specifically,
+// ensureOnProfilePage() should not throw.
+//
+// The caller owns the element, so it is responsible for keeping the element
+// alive while the function runs, and for disposing of the element later on.
 //
 // The returned objects contain the link's text content (text), which is usually
 // the player's name, and the absolute URL of the player profile (url).
@@ -94,7 +88,10 @@ export async function extractProfileLinkData(
   }).filter((linkData) => linkData !== null);
 }
 
-// Assumes the browser is navigated to a player profile page.
+// Main entry point for extracting information from a hotslogs player profile.
+//
+// Assumes that the browser is pointed at a player profile page. Specifically,
+// ensureOnProfilePage() should not throw.
 export async function extractPlayerProfile(page : puppeteer.Page)
     : Promise<PlayerProfile> {
   const data : PlayerProfile = {
@@ -118,20 +115,16 @@ export async function extractPlayerProfile(page : puppeteer.Page)
       const element = document.querySelector('h1');
       return element && element.textContent;
     });
-    if (headingText) {
-      const match = /(.*)\s+Profile:(.*)/.exec(headingText);
-      if (match) {
-        data.playerRegion = match[1];
-        data.playerName = match[2];
-      }
-    } else {
-      await throwUnlessHtmlDocument(page);
+    const match = /(.*)\s+Profile:(.*)/.exec(headingText);
+    if (match) {
+      data.playerRegion = match[1];
+      data.playerName = match[2];
     }
   }
 
   const table = await page.$('table.rgMasterTable');
   if (!table) {
-    await throwUnlessHtmlDocument(page);
+    // The page might not be a profile.
     return data;
   }
 

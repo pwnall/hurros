@@ -1,9 +1,9 @@
 import { MatchSummary } from "../db/match";
 import PagePool from '../cluster/page_pool';
 import {
-  extractMatchStats, goToMatchSummary, PlayerMatchSummary,
+  ensureOnMatchSummaryPage, extractMatchStats,  matchSummaryUrl,
+  PlayerMatchSummary,
 } from '../scraper/match_summary';
-import { retryWhileNonHtmlDocumentErrors } from '../scraper/rate_limit_helper';
 
 // Extract the valid player IDs associated with a match.
 export function matchPlayerIds(match : MatchSummary) : string[] {
@@ -21,10 +21,8 @@ export function matchPlayerIds(match : MatchSummary) : string[] {
 // Returns a rejected promise if an error occurs.
 export async function scrapeMatchSummary(replayId : string, pool : PagePool)
     : Promise<PlayerMatchSummary[]> {
-  return await pool.withPage(async (page) => {
-    return await retryWhileNonHtmlDocumentErrors(async () => {
-      await goToMatchSummary(page, replayId);
-      return await extractMatchStats(page);
-    });
+  return await pool.withPage(matchSummaryUrl(replayId), async (page) => {
+    await ensureOnMatchSummaryPage(page, replayId);
+    return await extractMatchStats(page);
   });
 }
