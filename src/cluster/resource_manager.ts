@@ -78,7 +78,8 @@ export default class ResourceManager {
     try {
       while (true) {
         try {
-          const response = await page.goto(url);
+          const response = await page.goto(
+              url, { timeout: pageInfo.backoffs.temporary.nextDelay });
           return await f(page, response);
         } catch (e) {
           pageInfo.lastError = e;
@@ -338,13 +339,13 @@ export default class ResourceManager {
             count: 0,  // Will be overwritten by checkoutPage.
             nextDelay: 0,  // Will be overwritten by checkoutPage.
             minDelay: 30 * 1000,  //  30 seconds
-            maxDelay: 60 * 60 * 1000,  // 1 hour
+            maxDelay: 10 * 60 * 1000,  // 10 minutes
           },
           rateLimited: {
             count: 0,  // Will be overwritten by checkoutPage.
             nextDelay: 0,  // Will be overwritten by checkoutPage.
             minDelay: 10 * 60 * 1000,  // 10 minutes
-            maxDelay: 5 * 60 * 1000,  // 5 minutes
+            maxDelay: 60 * 60 * 1000,  // 1 hour
           },
         },
       });
